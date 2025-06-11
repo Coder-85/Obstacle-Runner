@@ -1,0 +1,11 @@
+obj
+*.layout
+*.depend
+.vscode
+*.bin
+bin
+MINGW
+demo
+examples
+OpenGL/lib
+OpenGL/dll
