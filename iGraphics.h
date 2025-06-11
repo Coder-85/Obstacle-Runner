@@ -11,13 +11,15 @@
 #include <stdlib.h>
 #ifdef _WIN32
 #include <windows.h>
+#include "glut.h"
+#include "freeglut_ext.h"
 #else
 // Include POSIX or Linux-specific headers if needed
 #include <unistd.h>
-#endif
-
 #include "GL/glut.h"
 #include "GL/freeglut_ext.h"
+#endif
+
 #include <time.h>
 #include <math.h>
 #include <dirent.h>
