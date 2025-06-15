@@ -2,8 +2,11 @@
 
 #define SCRN_WIDTH 1000
 #define SCRN_HEIGHT 600
+#define BTN_TOTAL 6
+#define BTN_EXIT 5
 
-enum page_status{
+enum page_status
+{
     HOME,
     PLAY,
     RESUME,
@@ -11,13 +14,57 @@ enum page_status{
     SCENES,
     HELP
 };
+
 enum page_status currentPage; // To track which page is being visited currently
-
-
-Image home_coin_img; // image of coin on the home page
-
-
+Image home_coin_img;     // Image of coin on the home page
 int home_option_color[6] = {0};
+// Button labels and positions for home page options
+const char *home_option_labels[BTN_TOTAL] = {"New Game", "Saved Game", "Scenes", "Leaderboard", "Help", "Exit"};
+const int home_option_x = 690;
+const int home_option_w = 250;
+const int home_option_h = 40;
+
+inline int get_home_option_y(int idx)
+{
+    return 30 + 70 * (BTN_TOTAL - idx);
+}
+
+float get_text_width(const char* str, float scale, void* font)
+{
+    float w = 0;
+    for (int i = 0; str[i] != '\0'; i++)
+    {
+        w += glutStrokeWidth(font, str[i]);
+    }
+    return w * scale;
+}
+
+void draw_home_page_button(int idx, int highlight, const char *label)
+{
+    int x = home_option_x;
+    int y = get_home_option_y(idx);
+    if (highlight)
+    {
+        if (idx == BTN_EXIT)
+            iSetTransparentColor(168, 2, 2, 0.4);
+        else
+            iSetTransparentColor(2, 168, 77, 0.4);
+
+        iFilledRectangle(x, y, home_option_w, home_option_h);
+    }
+    else
+    {    
+        iSetColor(255, 255, 255);
+        iRectangle(x, y, home_option_w, home_option_h);
+    }
+
+    iSetColor(255, 255, 255);
+    float scale = 0.15f;
+    float text_width = get_text_width(label, scale, GLUT_STROKE_MONO_ROMAN);
+    float text_x = x + (home_option_w - text_width) / 2.0f;
+    int text_y = y + 13;
+    iTextAdvanced(text_x, text_y, label, scale, 1, GLUT_STROKE_MONO_ROMAN);
+}
 /*
 function iDraw() is called again and again by the system.
 */
@@ -25,7 +72,8 @@ void iDraw()
 {
     // place your drawing codes here
     iClear();
-    if(currentPage == HOME){
+    if (currentPage == HOME)
+    {
         char total_coins[10] = "1000";
         iClear();
         // Load Bg Img
@@ -37,69 +85,11 @@ void iDraw()
         // Print Total Coin
         iTextAdvanced(850, 575, total_coins, 0.1, 1, GLUT_STROKE_MONO_ROMAN);
 
-        // Add options
-
-        if(home_option_color[0] == 0){
-            iSetColor(255, 255, 255);
-            iRectangle(690, 450, 250, 40);
-        }else{
-            iSetTransparentColor(2, 168, 77, 0.4);
-            iFilledRectangle(690, 450, 250, 40);
+        // Draw home page buttons
+        for (int i = 0; i < BTN_TOTAL; i++)
+        {
+            draw_home_page_button(i, home_option_color[i], home_option_labels[i]);
         }
-        iSetColor(255, 255, 255);
-        iTextAdvanced(755, 463, "New Game", 0.15, 1, GLUT_STROKE_MONO_ROMAN);
-
-        if(home_option_color[1] == 0){
-            iSetColor(255, 255, 255);
-            iRectangle(690, 380, 250, 40);
-        }else{
-            iSetTransparentColor(2, 168, 77, 0.4);
-            iFilledRectangle(690, 380, 250, 40);
-        }
-        iSetColor(255, 255, 255);
-        iTextAdvanced(740, 393, "Saved Game", 0.15, 1, GLUT_STROKE_MONO_ROMAN);
-
-        if(home_option_color[2] == 0){
-            iSetColor(255, 255, 255);
-            iRectangle(690, 310, 250, 40);
-        }else{
-            iSetTransparentColor(2, 168, 77, 0.4);
-            iFilledRectangle(690, 310, 250, 40);
-        }
-        iSetColor(255, 255, 255);
-        iTextAdvanced(770, 323, "Scenes", 0.15, 1, GLUT_STROKE_MONO_ROMAN);
-
-        if(home_option_color[3] == 0){
-            iSetColor(255, 255, 255);
-            iRectangle(690, 240, 250, 40);
-        }else{
-            iSetTransparentColor(2, 168, 77, 0.4);
-            iFilledRectangle(690, 240, 250, 40);
-        }
-        iSetColor(255, 255, 255);
-        iTextAdvanced(730, 253, "Leaderboard", 0.15, 1, GLUT_STROKE_MONO_ROMAN);
-
-        if(home_option_color[4] == 0){
-            iSetColor(255, 255, 255);
-            iRectangle(690, 170, 250, 40);
-        }else{
-            iSetTransparentColor(2, 168, 77, 0.4);
-            iFilledRectangle(690, 170, 250, 40);
-        }
-        iSetColor(255, 255, 255);
-        iTextAdvanced(785, 183, "Help", 0.15, 1, GLUT_STROKE_MONO_ROMAN);
-
-        if(home_option_color[5] == 0){
-            iSetColor(255, 255, 255);
-            iRectangle(690, 100, 250, 40);
-        }else{
-            iSetTransparentColor(168, 2, 2, 0.4);
-            iFilledRectangle(690, 100, 250, 40);
-        }
-        iSetColor(255, 255, 255);
-        iTextAdvanced(785, 113, "Exit", 0.15, 1, GLUT_STROKE_MONO_ROMAN);
-
-
     }
 }
 
@@ -109,43 +99,18 @@ function iMouseMove() is called when the user moves the mouse.
 */
 void iMouseMove(int mx, int my)
 {
-    // when mouse hovering the home page options
-    if(currentPage == HOME){
-
-        if((mx>=690 && mx<=940) && (my>=450 && my<=490)){
-            home_option_color[0] = 1;
-        }else{
-            home_option_color[0] = 0;
-        }
-
-        if((mx>=690 && mx<=940) && (my>=380 && my<=420)){
-            home_option_color[1] = 1;
-        }else{
-            home_option_color[1] = 0;
-        }
-
-        if((mx>=690 && mx<=940) && (my>=310 && my<=350)){
-            home_option_color[2] = 1;
-        }else{
-            home_option_color[2] = 0;
-        }
-
-        if((mx>=690 && mx<=940) && (my>=240 && my<=280)){
-            home_option_color[3] = 1;
-        }else{
-            home_option_color[3] = 0;
-        }
-
-        if((mx>=690 && mx<=940) && (my>=170 && my<=210)){
-            home_option_color[4] = 1;
-        }else{
-            home_option_color[4] = 0;
-        }
-
-        if((mx>=690 && mx<=940) && (my>=100 && my<=140)){
-            home_option_color[5] = 1;
-        }else{
-            home_option_color[5] = 0;
+    if (currentPage == HOME)
+    {
+        for (int i = 0; i < BTN_TOTAL; i++)
+        {
+            int x1 = home_option_x;
+            int x2 = x1 + home_option_w;
+            int y1 = get_home_option_y(i);
+            int y2 = y1 + home_option_h;
+            if ((mx >= x1 && mx <= x2) && (my >= y1 && my <= y2))
+                home_option_color[i] = 1;
+            else
+                home_option_color[i] = 0;
         }
     }
 }
