@@ -3,7 +3,7 @@
 #define SCRN_WIDTH 1000
 #define SCRN_HEIGHT 600
 #define BTN_TOTAL 6
-#define BTN_EXIT 5
+#define BTN_EXIT (BTN_TOTAL - 1)
 
 enum page_status
 {
