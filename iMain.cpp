@@ -16,9 +16,9 @@ enum page_status
     EXIT
 };
 
-enum page_status currentPage; // To track which page is being visited currently
-Image home_coin_img;     // Image of coin on the home page
-Sprite runner; // Sprite for the runner character
+enum page_status currentPage;   // To track which page is being visited currently
+Image home_coin_img;           // Image of coin on the home page
+Sprite runner;                // Sprite for the runner character
 int home_option_color[BTN_TOTAL] = {0};
 // Button labels and positions for home page options
 const char *home_option_labels[BTN_TOTAL] = {"New Game", "Saved Game", "Scenes", "Leaderboard", "Help", "Exit"};
@@ -77,6 +77,12 @@ void initialize_sprites()
     iSetSpritePosition(&runner, 192, 173);
     iScaleSprite(&runner, 0.23f);
     iChangeSpriteFrames(&runner, idle_frames, 10);
+}
+
+void iAnimSprites()
+{
+    // Animate the runner sprite
+    iAnimateSprite(&runner);
 }
 
 /*
@@ -268,6 +274,7 @@ int main(int argc, char *argv[])
     glutInit(&argc, argv);
     // place your own initialization codes here.
     initialize_sprites();
+    iSetTimer(100, iAnimSprites);
     iInitialize(SCRN_WIDTH, SCRN_HEIGHT, "Obstacle Runner");
     return 0;
 }
