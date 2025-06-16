@@ -10,9 +10,10 @@ enum page_status
     HOME,
     PLAY,
     RESUME,
-    LEADERBOARD,
     SCENES,
-    HELP
+    LEADERBOARD,
+    HELP,
+    EXIT
 };
 
 enum page_status currentPage; // To track which page is being visited currently
@@ -90,6 +91,26 @@ void iDraw()
         {
             draw_home_page_button(i, home_option_color[i], home_option_labels[i]);
         }
+        
+    }else if(currentPage == PLAY)
+    {
+        iClear();
+        iText(50, 50, "Play Page");
+    }else if(currentPage == RESUME)
+    {
+        iClear();
+        iText(50, 50, "Resume Page");
+    }else if(currentPage == SCENES)
+    {
+        iClear();
+        iText(50, 50, "Scenes Page");
+    }else if(currentPage == LEADERBOARD)
+    {
+        iClear();
+        iText(50, 50, "Leaderboard Page");
+    }else if(currentPage == HELP){
+        iClear();
+        iText(50, 50, "Help Page");
     }
 }
 
@@ -132,7 +153,46 @@ void iMouse(int button, int state, int mx, int my)
 {
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
     {
-        printf("%d %d\n", mx, my);
+        if (currentPage == HOME)
+        {
+            for (int i = 0; i < BTN_TOTAL; i++)
+            {
+                int x1 = home_option_x;
+                int x2 = x1 + home_option_w;
+                int y1 = get_home_option_y(i);
+                int y2 = y1 + home_option_h;
+                if ((mx >= x1 && mx <= x2) && (my >= y1 && my <= y2))
+                {
+                    switch (i+1)
+                    {
+                    case 1:
+                        currentPage = PLAY;
+                        break;
+
+                    case 2:
+                        currentPage = RESUME;
+                        break;
+                    
+                    case 3:
+                        currentPage = SCENES;
+                        break;
+
+                    case 4:
+                        currentPage = LEADERBOARD;
+                        break;
+
+                    case 5:
+                        currentPage = HELP;
+                        break;
+                    
+                    default:
+                        exit(0);
+                        break;
+                    }
+                }    
+                
+            }
+        }
     }
     if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN)
     {
