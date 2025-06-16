@@ -18,12 +18,14 @@ enum page_status
 
 enum page_status currentPage; // To track which page is being visited currently
 Image home_coin_img;     // Image of coin on the home page
-int home_option_color[6] = {0};
+Sprite runner; // Sprite for the runner character
+int home_option_color[BTN_TOTAL] = {0};
 // Button labels and positions for home page options
 const char *home_option_labels[BTN_TOTAL] = {"New Game", "Saved Game", "Scenes", "Leaderboard", "Help", "Exit"};
 const int home_option_x = 690;
 const int home_option_w = 250;
 const int home_option_h = 40;
+Image idle_frames[10];
 
 inline int get_home_option_y(int idx)
 {
@@ -66,6 +68,17 @@ void draw_home_page_button(int idx, int highlight, const char *label)
     int text_y = y + 13;
     iTextAdvanced(text_x, text_y, label, scale, 1, GLUT_STROKE_MONO_ROMAN);
 }
+
+void initialize_sprites()
+{
+    iLoadFramesFromFolder(idle_frames, "assets/img/sprite/idle");
+
+    iInitSprite(&runner, -1); 
+    iSetSpritePosition(&runner, 192, 173);
+    iScaleSprite(&runner, 0.23f);
+    iChangeSpriteFrames(&runner, idle_frames, 10);
+}
+
 /*
 function iDraw() is called again and again by the system.
 */
@@ -85,6 +98,8 @@ void iDraw()
         iShowLoadedImage(820, 570, &home_coin_img);
         // Print Total Coin
         iTextAdvanced(850, 575, total_coins, 0.1, 1, GLUT_STROKE_MONO_ROMAN);
+        // Draw Runner Sprite
+        iShowSprite(&runner);
 
         // Draw home page buttons
         for (int i = 0; i < BTN_TOTAL; i++)
@@ -252,6 +267,7 @@ int main(int argc, char *argv[])
 {
     glutInit(&argc, argv);
     // place your own initialization codes here.
+    initialize_sprites();
     iInitialize(SCRN_WIDTH, SCRN_HEIGHT, "Obstacle Runner");
     return 0;
 }
