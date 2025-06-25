@@ -27,6 +27,10 @@ const int home_option_w = 250;
 const int home_option_h = 40;
 Image idle_frames[10];
 
+// coordinate of the sprite image
+int sprite_x = 192;
+int sprite_y = 173;
+
 inline int get_home_option_y(int idx)
 {
     return 30 + 70 * (BTN_TOTAL - idx);
@@ -69,15 +73,27 @@ void draw_home_page_button(int idx, int highlight, const char *label)
     iTextAdvanced(text_x, text_y, label, scale, 1, GLUT_STROKE_MONO_ROMAN);
 }
 
+void loadCoinData(){
+    // Load Coin Img
+        iLoadImage(&home_coin_img, "assets/img/objects/coin/coin_small.png");
+        iScaleImage(&home_coin_img, 0.5);
+        iShowLoadedImage(820, 570, &home_coin_img);
+        // Print Total Coin
+        char total_coins[10] = "1000";
+        iTextAdvanced(850, 575, total_coins, 0.1, 1, GLUT_STROKE_MONO_ROMAN);
+}
+
 void initialize_sprites()
 {
     iLoadFramesFromFolder(idle_frames, "assets/img/sprite/idle");
 
     iInitSprite(&runner, -1); 
-    iSetSpritePosition(&runner, 192, 173);
+    iSetSpritePosition(&runner, sprite_x, sprite_y);
     iScaleSprite(&runner, 0.23f);
     iChangeSpriteFrames(&runner, idle_frames, 10);
 }
+
+
 
 void iAnimSprites()
 {
@@ -94,17 +110,14 @@ void iDraw()
     iClear();
     if (currentPage == HOME)
     {
-        char total_coins[10] = "1000";
+        
         iClear();
         // Load Bg Img
         iShowImage(0, 0, "assets/img/bg/home_bg_002.jpg");
-        // Load Coin Img
-        iLoadImage(&home_coin_img, "assets/img/objects/coin/coin_small.png");
-        iScaleImage(&home_coin_img, 0.5);
-        iShowLoadedImage(820, 570, &home_coin_img);
-        // Print Total Coin
-        iTextAdvanced(850, 575, total_coins, 0.1, 1, GLUT_STROKE_MONO_ROMAN);
+        // Space for coins
+        loadCoinData();
         // Draw Runner Sprite
+        iSetSpritePosition(&runner, 192, 173);
         iShowSprite(&runner);
 
         // Draw home page buttons
@@ -124,14 +137,64 @@ void iDraw()
     }else if(currentPage == SCENES)
     {
         iClear();
+        // Space for coins
+        loadCoinData();
         iText(50, 50, "Scenes Page");
     }else if(currentPage == LEADERBOARD)
     {
         iClear();
-        iText(50, 50, "Leaderboard Page");
+        // Load Bg Img
+        iShowImage(0, 0, "assets/img/bg/leaderboard_bg_001.jpg");
+        // Space for coins
+        loadCoinData();
+        // Text
+        char str[20] = "Leaderboard";
+        float text_scale = 0.25f;
+        float text_width = get_text_width(str, text_scale, GLUT_STROKE_MONO_ROMAN);
+
+        iSetTransparentColor(20, 20, 20, 0.5);
+        iFilledRectangle((SCRN_WIDTH/2-text_width), 505, (text_width*2), 50);
+        iFilledRectangle((SCRN_WIDTH/2-text_width), 45, (text_width*2), 395);
+
+        iSetColor(255, 255, 255);
+        iTextAdvanced((SCRN_WIDTH-text_width)/2, 520, str, text_scale, 1, GLUT_STROKE_MONO_ROMAN);
+
+        iLine((SCRN_WIDTH/2-text_width), 400, (SCRN_WIDTH/2-text_width)+(text_width*2), 400);
+        // First row of Table Head
+        iTextAdvanced((SCRN_WIDTH/2-text_width) + 50 , 415, "Position", 0.12, 1, GLUT_STROKE_ROMAN);
+        iTextAdvanced((SCRN_WIDTH/2-text_width) + 160 , 415, "Name", 0.12, 1, GLUT_STROKE_ROMAN);
+        iTextAdvanced((SCRN_WIDTH/2-text_width) + 440 , 415, "Score", 0.12, 1, GLUT_STROKE_ROMAN);
+
+
+        // All Rows of Table Body
+
+        for(int i = 0; i<8; i++){  
+            if(i == 0){
+                iShowImage((SCRN_WIDTH/2-text_width) + 50, 345-40*i, "assets/img/objects/medal/gold.png");
+            }else if(i == 1){
+                iShowImage((SCRN_WIDTH/2-text_width) + 50, 345-40*i, "assets/img/objects/medal/silver.png");
+            }else if(i == 2){
+                iShowImage((SCRN_WIDTH/2-text_width) + 50, 345-40*i, "assets/img/objects/medal/bronze.png");
+            }else{
+                char x[5];
+                x[0]=i+48+1;
+                x[1] = '\0';
+                iTextAdvanced((SCRN_WIDTH/2-text_width) + 50 , 350-40*i, x, 0.12, 1, GLUT_STROKE_ROMAN);
+            }
+        iTextAdvanced((SCRN_WIDTH/2-text_width) + 160 , 350-40*i, "Sifat", 0.12, 1, GLUT_STROKE_ROMAN);
+        iTextAdvanced((SCRN_WIDTH/2-text_width) + 440 , 350-40*i, "500", 0.12, 1, GLUT_STROKE_ROMAN);
+        }
+
+
+        
     }else if(currentPage == HELP){
         iClear();
-        iText(50, 50, "Help Page");
+        // Load Bg Img
+        iShowImage(0, 0, "assets/img/bg/help_bg_001.png");
+        iShowSprite(&runner);
+        // Space for coins
+        loadCoinData();
+        
     }
 }
 
@@ -204,6 +267,7 @@ void iMouse(int button, int state, int mx, int my)
 
                     case 5:
                         currentPage = HELP;
+                        iSetSpritePosition(&runner, 142, 173);
                         break;
                     
                     default:
@@ -213,6 +277,8 @@ void iMouse(int button, int state, int mx, int my)
                 }    
                 
             }
+        }else if(currentPage == HELP){
+            
         }
     }
     if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN)
@@ -238,8 +304,14 @@ void iKeyboard(unsigned char key)
 {
     switch (key)
     {
-    case 'q':
-        // do something with 'q'
+        // Escape key
+    case 27:
+        if(currentPage == HOME){
+
+        }else if(currentPage == HELP || currentPage == LEADERBOARD || currentPage == SCENES){
+            iSetSpritePosition(&runner, sprite_x, sprite_y);
+            currentPage = HOME;
+        }
         break;
     // place your codes for other keys here
     default:
@@ -261,7 +333,8 @@ void iSpecialKeyboard(unsigned char key)
     switch (key)
     {
     case GLUT_KEY_END:
-        // do something
+        iSetSpritePosition(&runner, sprite_x, sprite_y);
+        currentPage = HOME;
         break;
     // place your codes for other keys here
     default:
