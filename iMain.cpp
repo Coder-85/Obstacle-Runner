@@ -75,12 +75,13 @@ void draw_home_page_button(int idx, int highlight, const char *label)
 
 void loadCoinData(){
     // Load Coin Img
-        iLoadImage(&home_coin_img, "assets/img/objects/coin/coin_small.png");
-        iScaleImage(&home_coin_img, 0.5);
-        iShowLoadedImage(820, 570, &home_coin_img);
-        // Print Total Coin
-        char total_coins[10] = "1000";
-        iTextAdvanced(850, 575, total_coins, 0.1, 1, GLUT_STROKE_MONO_ROMAN);
+    iLoadImage(&home_coin_img, "assets/img/objects/coin/coin_small.png");
+    iScaleImage(&home_coin_img, 0.5);
+    iShowLoadedImage(820, 570, &home_coin_img);
+    // Print Total Coin
+    char total_coins[10] = "1000";
+    iSetColor(255, 255, 255);
+    iTextAdvanced(850, 575, total_coins, 0.1, 1, GLUT_STROKE_MONO_ROMAN);
 }
 
 void initialize_sprites()
@@ -137,9 +138,34 @@ void iDraw()
     }else if(currentPage == SCENES)
     {
         iClear();
+        // Load Bg Img
+        iShowImage(0, 0, "assets/img/bg/scene_bg_001.jpeg");
         // Space for coins
         loadCoinData();
-        iText(50, 50, "Scenes Page");
+
+        iSetTransparentColor(20, 20, 20, 0.85);
+        iFilledRectangle(0, 100, 1000, 400);
+
+        //  Scenes
+        iSetColor(255,255,255);
+        for(int i = 0 ;i<3; i++){
+            
+            char scene_status[50] = "Selected";
+            iShowImage(55*(i+1) + 260*i, 207, "assets/img/scenes/1.png");
+            char scene_name[50] = "Gound Runner";
+            float text_scale_1 = 0.15;
+            float text_width_1 = get_text_width(scene_status, text_scale_1, GLUT_STROKE_MONO_ROMAN);
+            iTextAdvanced(55*(i+1)+260*i+(260-text_width_1)/2, 410, scene_status, text_scale_1, 2, GLUT_STROKE_MONO_ROMAN);
+
+            
+            
+            float text_width_2 = get_text_width(scene_name, text_scale_1, GLUT_STROKE_MONO_ROMAN);
+            iTextAdvanced(55*(i+1)+260*i+(260-text_width_2)/2, 180, scene_name, text_scale_1, 1, GLUT_STROKE_MONO_ROMAN);
+
+            if(i>0){
+                iShowImage(55*(i+1) + 260*i+97.5, 207+52, "assets/img/scenes/lock.png");
+            }
+        }
     }else if(currentPage == LEADERBOARD)
     {
         iClear();
@@ -157,7 +183,7 @@ void iDraw()
         iFilledRectangle((SCRN_WIDTH/2-text_width), 45, (text_width*2), 395);
 
         iSetColor(255, 255, 255);
-        iTextAdvanced((SCRN_WIDTH-text_width)/2, 520, str, text_scale, 1, GLUT_STROKE_MONO_ROMAN);
+        iTextAdvanced((SCRN_WIDTH-text_width)/2, 520, str, text_scale, 2, GLUT_STROKE_MONO_ROMAN);
 
         iLine((SCRN_WIDTH/2-text_width), 400, (SCRN_WIDTH/2-text_width)+(text_width*2), 400);
         // First row of Table Head
