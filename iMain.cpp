@@ -16,8 +16,8 @@ enum page_status
     EXIT
 };
 
-enum page_status currentPage;   // To track which page is being visited currently
-Image home_coin_img;           // Image of coin on the home page
+enum page_status currentPage; // To track which page is being visited currently
+Image home_coin_img;          // Image of coin on the home page
 Sprite runner;                // Sprite for the runner character
 int home_option_color[BTN_TOTAL] = {0};
 // Button labels and positions for home page options
@@ -36,7 +36,7 @@ inline int get_home_option_y(int idx)
     return 30 + 70 * (BTN_TOTAL - idx);
 }
 
-float get_text_width(const char* str, float scale, void* font)
+float get_text_width(const char *str, float scale, void *font)
 {
     float w = 0;
     for (int i = 0; str[i] != '\0'; i++)
@@ -60,7 +60,7 @@ void draw_home_page_button(int idx, int highlight, const char *label)
         iFilledRectangle(x, y, home_option_w, home_option_h);
     }
     else
-    {    
+    {
         iSetColor(255, 255, 255);
         iRectangle(x, y, home_option_w, home_option_h);
     }
@@ -73,10 +73,9 @@ void draw_home_page_button(int idx, int highlight, const char *label)
     iTextAdvanced(text_x, text_y, label, scale, 1, GLUT_STROKE_MONO_ROMAN);
 }
 
-void loadCoinData(){
-    // Load Coin Img
-    iLoadImage(&home_coin_img, "assets/img/objects/coin/coin_small.png");
-    iScaleImage(&home_coin_img, 0.5);
+void loadCoinData()
+{
+
     iShowLoadedImage(820, 570, &home_coin_img);
     // Print Total Coin
     char total_coins[10] = "1000";
@@ -88,13 +87,18 @@ void initialize_sprites()
 {
     iLoadFramesFromFolder(idle_frames, "assets/img/sprite/idle");
 
-    iInitSprite(&runner, -1); 
+    iInitSprite(&runner, -1);
     iSetSpritePosition(&runner, sprite_x, sprite_y);
     iScaleSprite(&runner, 0.23f);
     iChangeSpriteFrames(&runner, idle_frames, 10);
 }
 
-
+void load_images()
+{
+    // Load Coin Img
+    iLoadImage(&home_coin_img, "assets/img/objects/coin/coin_small.png");
+    iScaleImage(&home_coin_img, 0.5);
+}
 
 void iAnimSprites()
 {
@@ -111,7 +115,6 @@ void iDraw()
     iClear();
     if (currentPage == HOME)
     {
-        
         iClear();
         // Load Bg Img
         iShowImage(0, 0, "assets/img/bg/home_bg_002.jpg");
@@ -126,16 +129,18 @@ void iDraw()
         {
             draw_home_page_button(i, home_option_color[i], home_option_labels[i]);
         }
-        
-    }else if(currentPage == PLAY)
+    }
+    else if (currentPage == PLAY)
     {
         iClear();
         iText(50, 50, "Play Page");
-    }else if(currentPage == RESUME)
+    }
+    else if (currentPage == RESUME)
     {
         iClear();
         iText(50, 50, "Resume Page");
-    }else if(currentPage == SCENES)
+    }
+    else if (currentPage == SCENES)
     {
         iClear();
         // Load Bg Img
@@ -147,26 +152,27 @@ void iDraw()
         iFilledRectangle(0, 100, 1000, 400);
 
         //  Scenes
-        iSetColor(255,255,255);
-        for(int i = 0 ;i<3; i++){
-            
+        iSetColor(255, 255, 255);
+        for (int i = 0; i < 3; i++)
+        {
+
             char scene_status[50] = "Selected";
-            iShowImage(55*(i+1) + 260*i, 207, "assets/img/scenes/1.png");
+            iShowImage(55 * (i + 1) + 260 * i, 207, "assets/img/scenes/1.png");
             char scene_name[50] = "Gound Runner";
             float text_scale_1 = 0.15;
             float text_width_1 = get_text_width(scene_status, text_scale_1, GLUT_STROKE_MONO_ROMAN);
-            iTextAdvanced(55*(i+1)+260*i+(260-text_width_1)/2, 410, scene_status, text_scale_1, 2, GLUT_STROKE_MONO_ROMAN);
+            iTextAdvanced(55 * (i + 1) + 260 * i + (260 - text_width_1) / 2, 410, scene_status, text_scale_1, 2, GLUT_STROKE_MONO_ROMAN);
 
-            
-            
             float text_width_2 = get_text_width(scene_name, text_scale_1, GLUT_STROKE_MONO_ROMAN);
-            iTextAdvanced(55*(i+1)+260*i+(260-text_width_2)/2, 180, scene_name, text_scale_1, 1, GLUT_STROKE_MONO_ROMAN);
+            iTextAdvanced(55 * (i + 1) + 260 * i + (260 - text_width_2) / 2, 180, scene_name, text_scale_1, 1, GLUT_STROKE_MONO_ROMAN);
 
-            if(i>0){
-                iShowImage(55*(i+1) + 260*i+97.5, 207+52, "assets/img/scenes/lock.png");
+            if (i > 0)
+            {
+                iShowImage(55 * (i + 1) + 260 * i + 97.5, 207 + 52, "assets/img/scenes/lock.png");
             }
         }
-    }else if(currentPage == LEADERBOARD)
+    }
+    else if (currentPage == LEADERBOARD)
     {
         iClear();
         // Load Bg Img
@@ -179,48 +185,53 @@ void iDraw()
         float text_width = get_text_width(str, text_scale, GLUT_STROKE_MONO_ROMAN);
 
         iSetTransparentColor(20, 20, 20, 0.5);
-        iFilledRectangle((SCRN_WIDTH/2-text_width), 505, (text_width*2), 50);
-        iFilledRectangle((SCRN_WIDTH/2-text_width), 45, (text_width*2), 395);
+        iFilledRectangle((SCRN_WIDTH / 2 - text_width), 505, (text_width * 2), 50);
+        iFilledRectangle((SCRN_WIDTH / 2 - text_width), 45, (text_width * 2), 395);
 
         iSetColor(255, 255, 255);
-        iTextAdvanced((SCRN_WIDTH-text_width)/2, 520, str, text_scale, 2, GLUT_STROKE_MONO_ROMAN);
+        iTextAdvanced((SCRN_WIDTH - text_width) / 2, 520, str, text_scale, 2, GLUT_STROKE_MONO_ROMAN);
 
-        iLine((SCRN_WIDTH/2-text_width), 400, (SCRN_WIDTH/2-text_width)+(text_width*2), 400);
+        iLine((SCRN_WIDTH / 2 - text_width), 400, (SCRN_WIDTH / 2 - text_width) + (text_width * 2), 400);
         // First row of Table Head
-        iTextAdvanced((SCRN_WIDTH/2-text_width) + 50 , 415, "Position", 0.12, 1, GLUT_STROKE_ROMAN);
-        iTextAdvanced((SCRN_WIDTH/2-text_width) + 160 , 415, "Name", 0.12, 1, GLUT_STROKE_ROMAN);
-        iTextAdvanced((SCRN_WIDTH/2-text_width) + 440 , 415, "Score", 0.12, 1, GLUT_STROKE_ROMAN);
-
+        iTextAdvanced((SCRN_WIDTH / 2 - text_width) + 50, 415, "Position", 0.12, 1, GLUT_STROKE_ROMAN);
+        iTextAdvanced((SCRN_WIDTH / 2 - text_width) + 160, 415, "Name", 0.12, 1, GLUT_STROKE_ROMAN);
+        iTextAdvanced((SCRN_WIDTH / 2 - text_width) + 440, 415, "Score", 0.12, 1, GLUT_STROKE_ROMAN);
 
         // All Rows of Table Body
 
-        for(int i = 0; i<8; i++){  
-            if(i == 0){
-                iShowImage((SCRN_WIDTH/2-text_width) + 50, 345-40*i, "assets/img/objects/medal/gold.png");
-            }else if(i == 1){
-                iShowImage((SCRN_WIDTH/2-text_width) + 50, 345-40*i, "assets/img/objects/medal/silver.png");
-            }else if(i == 2){
-                iShowImage((SCRN_WIDTH/2-text_width) + 50, 345-40*i, "assets/img/objects/medal/bronze.png");
-            }else{
-                char x[5];
-                x[0]=i+48+1;
-                x[1] = '\0';
-                iTextAdvanced((SCRN_WIDTH/2-text_width) + 50 , 350-40*i, x, 0.12, 1, GLUT_STROKE_ROMAN);
+        for (int i = 0; i < 8; i++)
+        {
+            if (i == 0)
+            {
+                iShowImage((SCRN_WIDTH / 2 - text_width) + 50, 345 - 40 * i, "assets/img/objects/medal/gold.png");
             }
-        iTextAdvanced((SCRN_WIDTH/2-text_width) + 160 , 350-40*i, "Sifat", 0.12, 1, GLUT_STROKE_ROMAN);
-        iTextAdvanced((SCRN_WIDTH/2-text_width) + 440 , 350-40*i, "500", 0.12, 1, GLUT_STROKE_ROMAN);
+            else if (i == 1)
+            {
+                iShowImage((SCRN_WIDTH / 2 - text_width) + 50, 345 - 40 * i, "assets/img/objects/medal/silver.png");
+            }
+            else if (i == 2)
+            {
+                iShowImage((SCRN_WIDTH / 2 - text_width) + 50, 345 - 40 * i, "assets/img/objects/medal/bronze.png");
+            }
+            else
+            {
+                char x[5];
+                x[0] = i + 48 + 1;
+                x[1] = '\0';
+                iTextAdvanced((SCRN_WIDTH / 2 - text_width) + 50, 350 - 40 * i, x, 0.12, 1, GLUT_STROKE_ROMAN);
+            }
+            iTextAdvanced((SCRN_WIDTH / 2 - text_width) + 160, 350 - 40 * i, "Sifat", 0.12, 1, GLUT_STROKE_ROMAN);
+            iTextAdvanced((SCRN_WIDTH / 2 - text_width) + 440, 350 - 40 * i, "500", 0.12, 1, GLUT_STROKE_ROMAN);
         }
-
-
-        
-    }else if(currentPage == HELP){
+    }
+    else if (currentPage == HELP)
+    {
         iClear();
         // Load Bg Img
         iShowImage(0, 0, "assets/img/bg/help_bg_001.png");
         iShowSprite(&runner);
         // Space for coins
         loadCoinData();
-        
     }
 }
 
@@ -273,7 +284,7 @@ void iMouse(int button, int state, int mx, int my)
                 int y2 = y1 + home_option_h;
                 if ((mx >= x1 && mx <= x2) && (my >= y1 && my <= y2))
                 {
-                    switch (i+1)
+                    switch (i + 1)
                     {
                     case 1:
                         currentPage = PLAY;
@@ -282,7 +293,7 @@ void iMouse(int button, int state, int mx, int my)
                     case 2:
                         currentPage = RESUME;
                         break;
-                    
+
                     case 3:
                         currentPage = SCENES;
                         break;
@@ -295,16 +306,16 @@ void iMouse(int button, int state, int mx, int my)
                         currentPage = HELP;
                         iSetSpritePosition(&runner, 142, 173);
                         break;
-                    
+
                     default:
                         exit(0);
                         break;
                     }
-                }    
-                
+                }
             }
-        }else if(currentPage == HELP){
-            
+        }
+        else if (currentPage == HELP)
+        {
         }
     }
     if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN)
@@ -332,9 +343,8 @@ void iKeyboard(unsigned char key)
     {
         // Escape key
     case 27:
-        if(currentPage == HOME){
-
-        }else if(currentPage == HELP || currentPage == LEADERBOARD || currentPage == SCENES){
+        if (currentPage == HELP || currentPage == LEADERBOARD || currentPage == SCENES)
+        {
             iSetSpritePosition(&runner, sprite_x, sprite_y);
             currentPage = HOME;
         }
@@ -373,6 +383,7 @@ int main(int argc, char *argv[])
     glutInit(&argc, argv);
     // place your own initialization codes here.
     initialize_sprites();
+    load_images();
     iSetTimer(100, iAnimSprites);
     iInitialize(SCRN_WIDTH, SCRN_HEIGHT, "Obstacle Runner");
     return 0;
