@@ -153,20 +153,33 @@ void iDraw()
 
         //  Scenes
         iSetColor(255, 255, 255);
+        int unlock_status[3] = {1, 1, 0};
+        int selected_status[3] = {0, 1, 0};
+        char scene_name[3][50] = {"Ground Runner", "Mountain Runner", "Horror Runner"};
         for (int i = 0; i < 3; i++)
         {
+            char scene_status[20];
+            if(unlock_status[i] == 1 && selected_status[i] == 1){
+                strcpy(scene_status, "Selected");
+                iSetColor(2, 168, 77);
+                iFilledRectangle(55 * (i + 1) + 260 * i - 3, 207 - 3, 266, 192);
+                iSetColor(255, 255, 255);
+            }else if(unlock_status[i] == 0){
+                strcpy(scene_status, "Locked");
+            }else{
+                strcpy(scene_status, "Unlocked");
+            }
 
-            char scene_status[50] = "Selected";
             iShowImage(55 * (i + 1) + 260 * i, 207, "assets/img/scenes/1.png");
-            char scene_name[50] = "Gound Runner";
+            //char scene_name[50] = "Gound Runner";
             float text_scale_1 = 0.15;
             float text_width_1 = get_text_width(scene_status, text_scale_1, GLUT_STROKE_MONO_ROMAN);
             iTextAdvanced(55 * (i + 1) + 260 * i + (260 - text_width_1) / 2, 410, scene_status, text_scale_1, 2, GLUT_STROKE_MONO_ROMAN);
 
-            float text_width_2 = get_text_width(scene_name, text_scale_1, GLUT_STROKE_MONO_ROMAN);
-            iTextAdvanced(55 * (i + 1) + 260 * i + (260 - text_width_2) / 2, 180, scene_name, text_scale_1, 1, GLUT_STROKE_MONO_ROMAN);
+            float text_width_2 = get_text_width(scene_name[i], text_scale_1, GLUT_STROKE_MONO_ROMAN);
+            iTextAdvanced(55 * (i + 1) + 260 * i + (260 - text_width_2) / 2, 180, scene_name[i], text_scale_1, 1, GLUT_STROKE_MONO_ROMAN);
 
-            if (i > 0)
+            if (unlock_status[i] == 0)
             {
                 iShowImage(55 * (i + 1) + 260 * i + 97.5, 207 + 52, "assets/img/scenes/lock.png");
             }
