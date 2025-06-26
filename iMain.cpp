@@ -31,6 +31,10 @@ Image idle_frames[10];
 int sprite_x = 192;
 int sprite_y = 173;
 
+// Game variables
+int unlock_status[3] = {1, 1, 0};
+int selected_status[3] = {1, 0, 0};
+
 inline int get_home_option_y(int idx)
 {
     return 30 + 70 * (BTN_TOTAL - idx);
@@ -153,8 +157,7 @@ void iDraw()
 
         //  Scenes
         iSetColor(255, 255, 255);
-        int unlock_status[3] = {1, 1, 0};
-        int selected_status[3] = {0, 1, 0};
+        
         char scene_name[3][50] = {"Ground Runner", "Mountain Runner", "Horror Runner"};
         for (int i = 0; i < 3; i++)
         {
@@ -327,8 +330,21 @@ void iMouse(int button, int state, int mx, int my)
                 }
             }
         }
-        else if (currentPage == HELP)
+        else if (currentPage == SCENES)
         {
+            // Check if any scene is clicked
+            for (int i = 0; i < 3; i++)
+            {
+                int x1 = 55 * (i + 1) + 260 * i;
+                int x2 = x1 + 260;
+                int y1 = 207;
+                int y2 = y1 + 192;
+                if ((mx >= x1 && mx <= x2) && (my >= y1 && my <= y2) && unlock_status[i] == 1)
+                {
+                    memset(selected_status, 0, sizeof(selected_status));
+                    selected_status[i] = 1;
+                }
+            }
         }
     }
     if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN)
