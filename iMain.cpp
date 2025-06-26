@@ -150,10 +150,10 @@ void iDraw()
             int box_w = 350, box_h = 50;
             iSetTransparentColor(20, 20, 20, 0.45);
             iFilledRectangle(0, 0, SCRN_WIDTH, SCRN_HEIGHT);
-            
+
             int box_x = (SCRN_WIDTH - box_w) / 2;
             int box_y = (SCRN_HEIGHT - box_h) / 2 + 60;
-            // Draw label 
+            // Draw label
             char *label = "Input Username";
             float label_scale = 0.13f;
             float label_width = get_text_width(label, label_scale, GLUT_STROKE_MONO_ROMAN);
@@ -207,24 +207,29 @@ void iDraw()
 
         //  Scenes
         iSetColor(255, 255, 255);
-        
+
         char scene_name[3][50] = {"Ground Runner", "Mountain Runner", "Horror Runner"};
         for (int i = 0; i < 3; i++)
         {
             char scene_status[20];
-            if(unlock_status[i] == 1 && selected_status[i] == 1){
+            if (unlock_status[i] == 1 && selected_status[i] == 1)
+            {
                 strcpy(scene_status, "Selected");
                 iSetColor(2, 168, 77);
                 iFilledRectangle(55 * (i + 1) + 260 * i - 3, 207 - 3, 266, 192);
                 iSetColor(255, 255, 255);
-            }else if(unlock_status[i] == 0){
+            }
+            else if (unlock_status[i] == 0)
+            {
                 strcpy(scene_status, "Locked");
-            }else{
+            }
+            else
+            {
                 strcpy(scene_status, "Unlocked");
             }
 
             iShowImage(55 * (i + 1) + 260 * i, 207, "assets/img/scenes/1.png");
-            //char scene_name[50] = "Gound Runner";
+            // char scene_name[50] = "Gound Runner";
             float text_scale_1 = 0.15;
             float text_width_1 = get_text_width(scene_status, text_scale_1, GLUT_STROKE_MONO_ROMAN);
             iTextAdvanced(55 * (i + 1) + 260 * i + (260 - text_width_1) / 2, 410, scene_status, text_scale_1, 2, GLUT_STROKE_MONO_ROMAN);
@@ -324,7 +329,7 @@ void iMouseMove(int mx, int my)
     else if (currentPage == PLAY)
     {
         if (game_running == 0)
-        {   
+        {
             int box_w = 350, box_h = 50;
             int box_x = (SCRN_WIDTH - box_w) / 2;
             int box_y = (SCRN_HEIGHT - box_h) / 2 + 60;
@@ -471,7 +476,8 @@ void iKeyboard(unsigned char key)
             if (key == 8) // Backspace
             {
                 int len = strlen(username);
-                if (len > 0) username[len - 1] = '\0';
+                if (len > 0)
+                    username[len - 1] = '\0';
             }
             else if (key >= 32 && key <= 126 && strlen(username) < 31)
             {
