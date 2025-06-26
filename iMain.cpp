@@ -34,6 +34,11 @@ int sprite_y = 173;
 // Game variables
 int unlock_status[3] = {1, 1, 0};
 int selected_status[3] = {1, 0, 0};
+int game_running = 0;
+
+// Username input string
+char username[32] = "";
+int start_btn_highlight = 0;
 
 inline int get_home_option_y(int idx)
 {
@@ -137,7 +142,52 @@ void iDraw()
     else if (currentPage == PLAY)
     {
         iClear();
-        iText(50, 50, "Play Page");
+        // Show scene
+        iShowImage(0, 0, "assets/img/bg/game_bg_001.png");
+
+        if (game_running == 0)
+        {
+            int box_w = 350, box_h = 50;
+            iSetTransparentColor(20, 20, 20, 0.45);
+            iFilledRectangle(0, 0, SCRN_WIDTH, SCRN_HEIGHT);
+            
+            int box_x = (SCRN_WIDTH - box_w) / 2;
+            int box_y = (SCRN_HEIGHT - box_h) / 2 + 60;
+            // Draw label 
+            char *label = "Input Username";
+            float label_scale = 0.13f;
+            float label_width = get_text_width(label, label_scale, GLUT_STROKE_MONO_ROMAN);
+            iSetColor(255, 255, 255);
+            iTextAdvanced(box_x + (box_w - label_width) / 2, box_y + box_h + 18, label, label_scale, 1, GLUT_STROKE_MONO_ROMAN);
+            // Draw textbox
+            iRectangle(box_x, box_y, box_w, box_h);
+            float scale = 0.18f;
+            float text_width = get_text_width(username, scale, GLUT_STROKE_MONO_ROMAN);
+            iTextAdvanced(box_x + (box_w - text_width) / 2, box_y + 13, username, scale, 1, GLUT_STROKE_MONO_ROMAN);
+
+            // Draw the Start button
+            int start_btn_w = 180, start_btn_h = 40;
+            int start_btn_x = (SCRN_WIDTH - start_btn_w) / 2;
+            int start_btn_y = box_y - 70;
+            if (start_btn_highlight)
+                iSetTransparentColor(2, 168, 77, 0.4);
+            else
+                iSetColor(255, 255, 255);
+            if (start_btn_highlight)
+                iFilledRectangle(start_btn_x, start_btn_y, start_btn_w, start_btn_h);
+            else
+                iRectangle(start_btn_x, start_btn_y, start_btn_w, start_btn_h);
+            const char *start_label = "Start";
+            float start_text_width = get_text_width(start_label, scale, GLUT_STROKE_MONO_ROMAN);
+            iSetColor(255, 255, 255);
+            iTextAdvanced(start_btn_x + (start_btn_w - start_text_width) / 2, start_btn_y + 13, start_label, scale, 1, GLUT_STROKE_MONO_ROMAN);
+        }
+
+        else
+        {
+            iSetSpritePosition(&runner, sprite_x, sprite_y);
+            iShowSprite(&runner);
+        }
     }
     else if (currentPage == RESUME)
     {
@@ -271,6 +321,22 @@ void iMouseMove(int mx, int my)
                 home_option_color[i] = 0;
         }
     }
+    else if (currentPage == PLAY)
+    {
+        if (game_running == 0)
+        {   
+            int box_w = 350, box_h = 50;
+            int box_x = (SCRN_WIDTH - box_w) / 2;
+            int box_y = (SCRN_HEIGHT - box_h) / 2 + 60;
+            int start_btn_w = 180, start_btn_h = 40;
+            int start_btn_x = (SCRN_WIDTH - start_btn_w) / 2;
+            int start_btn_y = box_y - 70;
+            if (strlen(username) > 0 && (mx >= start_btn_x && mx <= start_btn_x + start_btn_w) && (my >= start_btn_y && my <= start_btn_y + start_btn_h))
+                start_btn_highlight = 1;
+            else
+                start_btn_highlight = 0;
+        }
+    }
 }
 
 /*
@@ -330,6 +396,20 @@ void iMouse(int button, int state, int mx, int my)
                 }
             }
         }
+        else if (game_running == 0 && strlen(username) > 0 && currentPage == PLAY && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
+        {
+            // Check if start button is clicked
+            int box_w = 350, box_h = 50;
+            int box_x = (SCRN_WIDTH - box_w) / 2;
+            int box_y = (SCRN_HEIGHT - box_h) / 2 + 60;
+            int start_btn_w = 180, start_btn_h = 40;
+            int start_btn_x = (SCRN_WIDTH - start_btn_w) / 2;
+            int start_btn_y = box_y - 70;
+            if ((mx >= start_btn_x && mx <= start_btn_x + start_btn_w) && (my >= start_btn_y && my <= start_btn_y + start_btn_h))
+            {
+                game_running = 1;
+            }
+        }
         else if (currentPage == SCENES)
         {
             // Check if any scene is clicked
@@ -381,6 +461,25 @@ void iKeyboard(unsigned char key)
     // place your codes for other keys here
     default:
         break;
+    }
+
+    if (currentPage == PLAY)
+    {
+        if (game_running == 0)
+        {
+            // Accept username input (enter ignored)
+            if (key == 8) // Backspace
+            {
+                int len = strlen(username);
+                if (len > 0) username[len - 1] = '\0';
+            }
+            else if (key >= 32 && key <= 126 && strlen(username) < 31)
+            {
+                int len = strlen(username);
+                username[len] = key;
+                username[len + 1] = '\0';
+            }
+        }
     }
 }
 
