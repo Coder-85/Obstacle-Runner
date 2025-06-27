@@ -13,7 +13,8 @@ enum page_status
     SCENES,
     LEADERBOARD,
     HELP,
-    EXIT
+    EXIT,
+    GAME_PAUSED
 };
 
 enum page_status currentPage; // To track which page is being visited currently
@@ -188,6 +189,14 @@ void iDraw()
             iSetSpritePosition(&runner, sprite_x, sprite_y);
             iShowSprite(&runner);
         }
+    }
+    else if(currentPage == GAME_PAUSED)
+    {
+        iClear();
+        iShowImage(0, 0, "assets/img/bg/paused_bg_001.png");
+        iSetSpritePosition(&runner, sprite_x, sprite_y);
+        iShowSprite(&runner);
+        iText(700, 300, "GAME PAUSED PAGE");
     }
     else if (currentPage == RESUME)
     {
@@ -485,6 +494,16 @@ void iKeyboard(unsigned char key)
                 username[len] = key;
                 username[len + 1] = '\0';
             }
+        }else if(game_running == 1){
+            if(key == 27){
+                currentPage = GAME_PAUSED;
+            }
+        }
+    }
+    else if(currentPage == GAME_PAUSED)
+    {
+        if(key == 27){
+            currentPage = PLAY;
         }
     }
 }
