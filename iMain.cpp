@@ -312,6 +312,51 @@ void iDraw()
         iShowSprite(&runner);
         // Space for coins
         loadCoinData();
+
+        
+
+        char help_page_title[3][50] = {"Navigation", "Game Control", "Developers"};
+        float txt_scale = 0.2f;
+        float text_width[3];
+        for(int i = 0; i<3; i++){
+            int multiplier;
+            if(i==1){
+                multiplier = 170;
+            }else{
+                multiplier = 200;
+            }
+            iSetTransparentColor(20, 20, 20, 0.7);
+            iFilledRectangle(500, 500-multiplier*i, 400, 50);
+            iSetColor(255, 255, 255);
+
+            text_width[i] = get_text_width(help_page_title[i], txt_scale, GLUT_STROKE_ROMAN);
+            iTextAdvanced(500+(400-text_width[i])/2, 518-multiplier*i, help_page_title[i], txt_scale, 1.0, GLUT_STROKE_ROMAN);
+
+            if(i==0){
+                iSetColor(0,0,0);
+                iTextAdvanced(515, 518-multiplier*i-50, "* Press ESC button from anywhere to go back", 0.12, 1.0, GLUT_STROKE_ROMAN);
+                iTextAdvanced(515, 518-multiplier*i-80, "* Press B/b button from anywhere to turn off", 0.12, 1.0, GLUT_STROKE_ROMAN);
+                iTextAdvanced(515, 518-multiplier*i-100, "  Sound", 0.12, 1.0, GLUT_STROKE_ROMAN);
+            }else if(i == 1){
+                iSetColor(0,0,0);
+                iTextAdvanced(515, 518-multiplier*i-50, " W: For Jump", 0.12, 1.0, GLUT_STROKE_ROMAN);
+                iTextAdvanced(515, 518-multiplier*i-80, " S: For Slide", 0.12, 1.0, GLUT_STROKE_ROMAN);
+                iTextAdvanced(515, 518-multiplier*i-110," D: For High Jump", 0.12, 1.0, GLUT_STROKE_ROMAN);
+                iSetColor(255, 0, 0);
+                iTextAdvanced(515, 518-multiplier*i-140," Note: You can press the buttons now to ", 0.12, 1.0, GLUT_STROKE_ROMAN);
+                iTextAdvanced(515, 518-multiplier*i-160," watch demo!", 0.12, 1.0, GLUT_STROKE_ROMAN);
+            }else if(i==2){
+                iSetColor(0,0,0);
+                iTextAdvanced(515, 518-multiplier*i-50, " Under the supervision of Abdur Rafi Sir,", 0.12, 1.0, GLUT_STROKE_ROMAN);
+                iSetColor(255, 255, 255);
+                iTextAdvanced(515+get_text_width(" Under the supervision of", 0.12, GLUT_STROKE_ROMAN), 518-multiplier*i-50, " Abdur Rafi Sir,", 0.12, 1.0, GLUT_STROKE_ROMAN);
+                iSetColor(0, 0, 0);
+                iTextAdvanced(515, 518-multiplier*i-80, " This game was developed by", 0.12, 1.0, GLUT_STROKE_ROMAN);
+                iSetColor(255, 255, 255);
+                iTextAdvanced(515, 518-multiplier*i-110," Shabit Zaman (2405013) & Sifat Al Islam (2405014)", 0.11, 1.0, GLUT_STROKE_ROMAN);
+            }
+        }
+        
     }
 }
 
