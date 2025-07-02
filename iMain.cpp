@@ -1,9 +1,11 @@
 #include "iGraphics.h"
+#include <time.h>
 
 #define SCRN_WIDTH 1000
 #define SCRN_HEIGHT 600
 #define BTN_TOTAL 6
 #define BTN_EXIT (BTN_TOTAL - 1)
+#define MAX_SLIDE_DURATION 1.f
 
 enum page_status
 {
@@ -26,7 +28,13 @@ const char *home_option_labels[BTN_TOTAL] = {"New Game", "Saved Game", "Scenes",
 const int home_option_x = 690;
 const int home_option_w = 250;
 const int home_option_h = 40;
+const int runner_y_initial = 136;
+
 Image idle_frames[10];
+Image running_frames[10];
+Image jumping_frames[10];
+Image sliding_frames[10];
+Image dead_frames[10];
 
 // coordinate of the sprite image
 int sprite_x = 192;
@@ -38,8 +46,46 @@ int selected_status[3] = {1, 0, 0};
 int game_running = 0;
 
 // Username input string
-char username[32] = "";
+char username[18] = "";
 int start_btn_highlight = 0;
+
+// Caret state for username input
+int caret_visible = 1;
+int caret_timer = 0;
+
+float scene_scroll = 0.f;
+float scene_scroll_velocity = 50.f;
+
+// Jumping vairables
+int is_jumping = 0;
+int is_super_jumping = 0;
+float jump_time = 0.0f;
+float jump_duration = 0.8f;
+float jump_velocity = 420.0f;
+float super_jump_velocity = 800.0f;
+float g = 1000.0f;
+
+// Sliding variables
+int is_sliding = 0;
+float slide_time = 0.f;
+
+// Box obstacle variable
+int box_active = 0;
+int box_x;
+int box_y;
+int box_w = 45 * 1.5f, box_h = 35 * 1.5f;
+Image box_img;
+
+int get_random_box_x()
+{
+    return 700 + rand() % 400; // random x between 700 and 1100
+}
+
+int check_collision(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)
+{
+    return (x1 < x2 + w2 && x1 + w1 > x2 &&
+            y1 < y2 + h2 && y1 + h1 > y2);
+}
 
 inline int get_home_option_y(int idx)
 {
@@ -96,6 +142,10 @@ void loadCoinData()
 void initialize_sprites()
 {
     iLoadFramesFromFolder(idle_frames, "assets/img/sprite/idle");
+    iLoadFramesFromFolder(running_frames, "assets/img/sprite/running");
+    iLoadFramesFromFolder(jumping_frames, "assets/img/sprite/jump");
+    iLoadFramesFromFolder(sliding_frames, "assets/img/sprite/slide");
+    iLoadFramesFromFolder(dead_frames, "assets/img/sprite/dead");
 
     iInitSprite(&runner, -1);
     iSetSpritePosition(&runner, sprite_x, sprite_y);
@@ -108,12 +158,99 @@ void load_images()
     // Load Coin Img
     iLoadImage(&home_coin_img, "assets/img/objects/coin/coin_small.png");
     iScaleImage(&home_coin_img, 0.5);
+    iLoadImage(&box_img, "assets/img/objects/killer/box.png");
+    iScaleImage(&box_img, 1.5f);
 }
 
 void iAnimSprites()
 {
-    // Animate the runner sprite
     iAnimateSprite(&runner);
+    if (currentPage == PLAY && game_running)
+    {
+        scene_scroll += scene_scroll_velocity;
+        if (scene_scroll > 2000)
+            scene_scroll = 0;
+    }
+
+    if (currentPage == PLAY && is_jumping && game_running)
+    {
+        jump_time += 0.1f;
+        float y = runner_y_initial + jump_velocity * jump_time - 0.5f * g * jump_time * jump_time;
+        if (y <= runner_y_initial)
+        {
+            y = runner_y_initial;
+            is_jumping = 0;
+            jump_time = 0.0f;
+            iChangeSpriteFrames(&runner, running_frames, 10);
+        }
+        iSetSpritePosition(&runner, runner.x, y);
+    }
+
+    if (currentPage == PLAY && is_super_jumping && game_running)
+    {
+        jump_time += 0.1f;
+        float y = runner_y_initial + super_jump_velocity * jump_time - 0.5f * g * jump_time * jump_time;
+        if (y <= runner_y_initial)
+        {
+            y = runner_y_initial;
+            is_super_jumping = 0;
+            jump_time = 0.0f;
+            iChangeSpriteFrames(&runner, running_frames, 10);
+        }
+        iSetSpritePosition(&runner, runner.x, y);
+    }
+
+    if (currentPage == PLAY && is_sliding && game_running)
+    {
+        slide_time += 0.1f;
+        if (slide_time >= MAX_SLIDE_DURATION)
+        {
+            is_sliding = 0;
+            slide_time = 0.f;
+            iChangeSpriteFrames(&runner, running_frames, 10);
+        }
+        iSetSpritePosition(&runner, runner.x, runner.y);
+    }
+
+    if (currentPage == PLAY && game_running)
+    {
+        if (!box_active || box_x + box_w < 0)
+        {
+            box_x = get_random_box_x();
+            box_y = runner_y_initial;
+            box_active = 1;
+        }
+        else
+        {
+            box_x -= scene_scroll_velocity;
+        }
+
+        // Check collision with runner
+        int runner_w = runner.frames[runner.currentFrame].width * runner.scale;
+        int runner_h = runner.frames[runner.currentFrame].height * runner.scale;
+        if (check_collision(runner.x, runner.y, runner_w, runner_h, box_x, box_y, box_w, box_h))
+        {
+            game_running = 0;
+            is_jumping = 0;
+            is_super_jumping = 0;
+            is_sliding = 0;
+            runner.y = runner_y_initial;
+            box_active = 0;
+            // iChangeSpriteFrames(&runner, dead_frames, 10);
+        }
+    }
+}
+
+void iAnimCaret()
+{
+    if (game_running == 1 || currentPage != PLAY)
+        return;
+    caret_timer++;
+    if (caret_timer >= 4)
+    {
+        caret_visible = !caret_visible;
+        caret_timer = 0;
+    }
 }
 
 /*
@@ -143,8 +280,12 @@ void iDraw()
     else if (currentPage == PLAY)
     {
         iClear();
-        // Show scene
-        iShowImage(0, 0, "assets/img/bg/game_bg_001.png");
+        // Draw scrolling background
+        int bg_width = 2000;
+        int bg_x1 = -scene_scroll;
+        int bg_x2 = bg_x1 + bg_width;
+        iShowImage(bg_x1, 0, "assets/img/bg/game_bg_001.png");
+        iShowImage(bg_x2, 0, "assets/img/bg/game_bg_001.png");
 
         if (game_running == 0)
         {
@@ -165,6 +306,14 @@ void iDraw()
             float scale = 0.18f;
             float text_width = get_text_width(username, scale, GLUT_STROKE_MONO_ROMAN);
             iTextAdvanced(box_x + (box_w - text_width) / 2, box_y + 13, username, scale, 1, GLUT_STROKE_MONO_ROMAN);
+            // Draw caret
+            if (caret_visible && strlen(username) < 18)
+            {
+                float caret_x = box_x + (box_w - text_width) / 2 + text_width + 2;
+                int caret_y = box_y + 10;
+                iSetColor(255, 255, 255);
+                iLine(caret_x, caret_y, caret_x, caret_y + 28);
+            }
 
             // Draw the Start button
             int start_btn_w = 180, start_btn_h = 40;
@@ -186,11 +335,15 @@ void iDraw()
 
         else
         {
-            iSetSpritePosition(&runner, sprite_x, sprite_y);
             iShowSprite(&runner);
+            // Draw box
+            if (box_active)
+            {
+                iShowLoadedImage(box_x, box_y, &box_img);
+            }
         }
     }
-    else if(currentPage == GAME_PAUSED)
+    else if (currentPage == GAME_PAUSED)
     {
         iClear();
         iShowImage(0, 0, "assets/img/bg/paused_bg_001.png");
@@ -313,50 +466,56 @@ void iDraw()
         // Space for coins
         loadCoinData();
 
-        
-
         char help_page_title[3][50] = {"Navigation", "Game Control", "Developers"};
         float txt_scale = 0.2f;
         float text_width[3];
-        for(int i = 0; i<3; i++){
+        for (int i = 0; i < 3; i++)
+        {
             int multiplier;
-            if(i==1){
+            if (i == 1)
+            {
                 multiplier = 170;
-            }else{
+            }
+            else
+            {
                 multiplier = 200;
             }
             iSetTransparentColor(20, 20, 20, 0.7);
-            iFilledRectangle(500, 500-multiplier*i, 400, 50);
+            iFilledRectangle(500, 500 - multiplier * i, 400, 50);
             iSetColor(255, 255, 255);
 
             text_width[i] = get_text_width(help_page_title[i], txt_scale, GLUT_STROKE_ROMAN);
-            iTextAdvanced(500+(400-text_width[i])/2, 518-multiplier*i, help_page_title[i], txt_scale, 1.0, GLUT_STROKE_ROMAN);
+            iTextAdvanced(500 + (400 - text_width[i]) / 2, 518 - multiplier * i, help_page_title[i], txt_scale, 1.0, GLUT_STROKE_ROMAN);
 
-            if(i==0){
-                iSetColor(0,0,0);
-                iTextAdvanced(515, 518-multiplier*i-50, "* Press ESC button from anywhere to go back", 0.12, 1.0, GLUT_STROKE_ROMAN);
-                iTextAdvanced(515, 518-multiplier*i-80, "* Press B/b button from anywhere to turn off", 0.12, 1.0, GLUT_STROKE_ROMAN);
-                iTextAdvanced(515, 518-multiplier*i-100, "  Sound", 0.12, 1.0, GLUT_STROKE_ROMAN);
-            }else if(i == 1){
-                iSetColor(0,0,0);
-                iTextAdvanced(515, 518-multiplier*i-50, " W: For Jump", 0.12, 1.0, GLUT_STROKE_ROMAN);
-                iTextAdvanced(515, 518-multiplier*i-80, " S: For Slide", 0.12, 1.0, GLUT_STROKE_ROMAN);
-                iTextAdvanced(515, 518-multiplier*i-110," D: For High Jump", 0.12, 1.0, GLUT_STROKE_ROMAN);
-                iSetColor(255, 0, 0);
-                iTextAdvanced(515, 518-multiplier*i-140," Note: You can press the buttons now to ", 0.12, 1.0, GLUT_STROKE_ROMAN);
-                iTextAdvanced(515, 518-multiplier*i-160," watch demo!", 0.12, 1.0, GLUT_STROKE_ROMAN);
-            }else if(i==2){
-                iSetColor(0,0,0);
-                iTextAdvanced(515, 518-multiplier*i-50, " Under the supervision of Abdur Rafi Sir,", 0.12, 1.0, GLUT_STROKE_ROMAN);
-                iSetColor(255, 255, 255);
-                iTextAdvanced(515+get_text_width(" Under the supervision of", 0.12, GLUT_STROKE_ROMAN), 518-multiplier*i-50, " Abdur Rafi Sir,", 0.12, 1.0, GLUT_STROKE_ROMAN);
+            if (i == 0)
+            {
                 iSetColor(0, 0, 0);
-                iTextAdvanced(515, 518-multiplier*i-80, " This game was developed by", 0.12, 1.0, GLUT_STROKE_ROMAN);
+                iTextAdvanced(515, 518 - multiplier * i - 50, "* Press ESC button from anywhere to go back", 0.12, 1.0, GLUT_STROKE_ROMAN);
+                iTextAdvanced(515, 518 - multiplier * i - 80, "* Press B/b button from anywhere to turn off", 0.12, 1.0, GLUT_STROKE_ROMAN);
+                iTextAdvanced(515, 518 - multiplier * i - 100, "  Sound", 0.12, 1.0, GLUT_STROKE_ROMAN);
+            }
+            else if (i == 1)
+            {
+                iSetColor(0, 0, 0);
+                iTextAdvanced(515, 518 - multiplier * i - 50, " W: For Jump", 0.12, 1.0, GLUT_STROKE_ROMAN);
+                iTextAdvanced(515, 518 - multiplier * i - 80, " S: For Slide", 0.12, 1.0, GLUT_STROKE_ROMAN);
+                iTextAdvanced(515, 518 - multiplier * i - 110, " D: For High Jump", 0.12, 1.0, GLUT_STROKE_ROMAN);
+                iSetColor(255, 0, 0);
+                iTextAdvanced(515, 518 - multiplier * i - 140, " Note: You can press the buttons now to ", 0.12, 1.0, GLUT_STROKE_ROMAN);
+                iTextAdvanced(515, 518 - multiplier * i - 160, " watch demo!", 0.12, 1.0, GLUT_STROKE_ROMAN);
+            }
+            else if (i == 2)
+            {
+                iSetColor(0, 0, 0);
+                iTextAdvanced(515, 518 - multiplier * i - 50, " Under the supervision of Abdur Rafi Sir,", 0.12, 1.0, GLUT_STROKE_ROMAN);
                 iSetColor(255, 255, 255);
-                iTextAdvanced(515, 518-multiplier*i-110," Shabit Zaman (2405013) & Sifat Al Islam (2405014)", 0.11, 1.0, GLUT_STROKE_ROMAN);
+                iTextAdvanced(515 + get_text_width(" Under the supervision of", 0.12, GLUT_STROKE_ROMAN), 518 - multiplier * i - 50, " Abdur Rafi Sir,", 0.12, 1.0, GLUT_STROKE_ROMAN);
+                iSetColor(0, 0, 0);
+                iTextAdvanced(515, 518 - multiplier * i - 80, " This game was developed by", 0.12, 1.0, GLUT_STROKE_ROMAN);
+                iSetColor(255, 255, 255);
+                iTextAdvanced(515, 518 - multiplier * i - 110, " Shabit Zaman (2405013) & Sifat Al Islam (2405014)", 0.11, 1.0, GLUT_STROKE_ROMAN);
             }
         }
-        
     }
 }
 
@@ -384,8 +543,7 @@ void iMouseMove(int mx, int my)
     {
         if (game_running == 0)
         {
-            int box_w = 350, box_h = 50;
-            int box_x = (SCRN_WIDTH - box_w) / 2;
+            int box_h = 50;
             int box_y = (SCRN_HEIGHT - box_h) / 2 + 60;
             int start_btn_w = 180, start_btn_h = 40;
             int start_btn_x = (SCRN_WIDTH - start_btn_w) / 2;
@@ -458,8 +616,7 @@ void iMouse(int button, int state, int mx, int my)
         else if (game_running == 0 && strlen(username) > 0 && currentPage == PLAY && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
         {
             // Check if start button is clicked
-            int box_w = 350, box_h = 50;
-            int box_x = (SCRN_WIDTH - box_w) / 2;
+            int box_h = 50;
             int box_y = (SCRN_HEIGHT - box_h) / 2 + 60;
             int start_btn_w = 180, start_btn_h = 40;
             int start_btn_x = (SCRN_WIDTH - start_btn_w) / 2;
@@ -467,6 +624,10 @@ void iMouse(int button, int state, int mx, int my)
             if ((mx >= start_btn_x && mx <= start_btn_x + start_btn_w) && (my >= start_btn_y && my <= start_btn_y + start_btn_h))
             {
                 game_running = 1;
+                iSetSpritePosition(&runner, sprite_x, sprite_y);
+                iChangeSpriteFrames(&runner, running_frames, 10);
+                iSetSpritePosition(&runner, SCRN_WIDTH / 2 - 70, runner_y_initial);
+                iShowSprite(&runner);
             }
         }
         else if (currentPage == SCENES)
@@ -533,21 +694,47 @@ void iKeyboard(unsigned char key)
                 if (len > 0)
                     username[len - 1] = '\0';
             }
-            else if (key >= 32 && key <= 126 && strlen(username) < 31)
+            else if (key >= 32 && key <= 126 && strlen(username) < 18)
             {
                 int len = strlen(username);
                 username[len] = key;
                 username[len + 1] = '\0';
             }
-        }else if(game_running == 1){
-            if(key == 27){
+        }
+        else if (game_running == 1)
+        {
+            if (key == 27)
+            {
                 currentPage = GAME_PAUSED;
+            }
+            if (!is_jumping && !is_super_jumping && !is_sliding)
+            {
+
+                if (key == 'w')
+                {
+                    is_jumping = 1;
+                    iChangeSpriteFrames(&runner, jumping_frames, 10);
+                    jump_time = 0.0f;
+                }
+                if (key == 'd')
+                {
+                    is_super_jumping = 1;
+                    iChangeSpriteFrames(&runner, jumping_frames, 10);
+                    jump_time = 0.0f;
+                }
+
+                if (key == 's')
+                {
+                    is_sliding = 1;
+                    iChangeSpriteFrames(&runner, sliding_frames, 10);
+                }
             }
         }
     }
-    else if(currentPage == GAME_PAUSED)
+    else if (currentPage == GAME_PAUSED)
     {
-        if(key == 27){
+        if (key == 27)
+        {
             currentPage = PLAY;
         }
     }
@@ -578,11 +765,13 @@ void iSpecialKeyboard(unsigned char key)
 
 int main(int argc, char *argv[])
 {
+    srand(time(0));
     glutInit(&argc, argv);
     // place your own initialization codes here.
     initialize_sprites();
     load_images();
-    iSetTimer(100, iAnimSprites);
+    iSetTimer(1, iAnimSprites);
+    iSetTimer(100, iAnimCaret); // Add caret animation timer
     iInitialize(SCRN_WIDTH, SCRN_HEIGHT, "Obstacle Runner");
     return 0;
 }
