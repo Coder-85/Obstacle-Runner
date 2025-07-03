@@ -6,6 +6,9 @@
 #define BTN_TOTAL 6
 #define BTN_EXIT (BTN_TOTAL - 1)
 #define MAX_SLIDE_DURATION 1.f
+#define JUMP_FRMAE_OFFSET 10
+#define SLIDE_FRMAE_OFFSET 20
+#define DEAD_FRMAE_OFFSET 30
 
 enum page_status
 {
@@ -30,11 +33,9 @@ const int home_option_w = 250;
 const int home_option_h = 40;
 const int runner_y_initial = 136;
 
+// Sprite Images
 Image idle_frames[10];
-Image running_frames[10];
-Image jumping_frames[10];
-Image sliding_frames[10];
-Image dead_frames[10];
+Image movement_frames[4*10];
 
 // coordinate of the sprite image
 int sprite_x = 192;
@@ -142,10 +143,11 @@ void loadCoinData()
 void initialize_sprites()
 {
     iLoadFramesFromFolder(idle_frames, "assets/img/sprite/idle");
-    iLoadFramesFromFolder(running_frames, "assets/img/sprite/running");
-    iLoadFramesFromFolder(jumping_frames, "assets/img/sprite/jump");
-    iLoadFramesFromFolder(sliding_frames, "assets/img/sprite/slide");
-    iLoadFramesFromFolder(dead_frames, "assets/img/sprite/dead");
+    // First 10 running, second 10 jumping, third 10 sliding, last 10 dead
+    iLoadFramesFromFolder(movement_frames, "assets/img/sprite/running");
+    iLoadFramesFromFolder(movement_frames+JUMP_FRMAE_OFFSET, "assets/img/sprite/jump");
+    iLoadFramesFromFolder(movement_frames+SLIDE_FRMAE_OFFSET, "assets/img/sprite/slide");
+    iLoadFramesFromFolder(movement_frames+DEAD_FRMAE_OFFSET, "assets/img/sprite/dead");
 
     iInitSprite(&runner, -1);
     iSetSpritePosition(&runner, sprite_x, sprite_y);
@@ -162,9 +164,24 @@ void load_images()
     iScaleImage(&box_img, 1.5f);
 }
 
+void iAnimateSpriteWithOffset(Sprite *sprite)
+{
+    if (!sprite || sprite->totalFrames <= 1 || !sprite->frames)
+        return;
+
+    if (is_jumping || is_super_jumping)
+        sprite->currentFrame = (sprite->currentFrame + 1) % 10 + JUMP_FRMAE_OFFSET; 
+    else if (is_sliding)
+        sprite->currentFrame = (sprite->currentFrame + 1) % 10 + SLIDE_FRMAE_OFFSET; 
+    else
+        sprite->currentFrame = (sprite->currentFrame + 1) % 10;
+
+    iUpdateCollisionMask(sprite);
+}
+
 void iAnimSprites()
 {
-    iAnimateSprite(&runner);
+    iAnimateSpriteWithOffset(&runner);
     if (currentPage == PLAY && game_running)
     {
         scene_scroll += scene_scroll_velocity;
@@ -181,7 +198,7 @@ void iAnimSprites()
             y = runner_y_initial;
             is_jumping = 0;
             jump_time = 0.0f;
-            iChangeSpriteFrames(&runner, running_frames, 10);
+            runner.currentFrame = 0;
         }
         iSetSpritePosition(&runner, runner.x, y);
     }
@@ -195,7 +212,7 @@ void iAnimSprites()
             y = runner_y_initial;
             is_super_jumping = 0;
             jump_time = 0.0f;
-            iChangeSpriteFrames(&runner, running_frames, 10);
+            runner.currentFrame = 0;
         }
         iSetSpritePosition(&runner, runner.x, y);
     }
@@ -207,7 +224,7 @@ void iAnimSprites()
         {
             is_sliding = 0;
             slide_time = 0.f;
-            iChangeSpriteFrames(&runner, running_frames, 10);
+            runner.currentFrame = 0;
         }
         iSetSpritePosition(&runner, runner.x, runner.y);
     }
@@ -236,7 +253,7 @@ void iAnimSprites()
             is_sliding = 0;
             runner.y = runner_y_initial;
             box_active = 0;
-            // iChangeSpriteFrames(&runner, dead_frames, 10);
+            runner.currentFrame = 0;
         }
     }
 }
@@ -625,7 +642,7 @@ void iMouse(int button, int state, int mx, int my)
             {
                 game_running = 1;
                 iSetSpritePosition(&runner, sprite_x, sprite_y);
-                iChangeSpriteFrames(&runner, running_frames, 10);
+                iChangeSpriteFrames(&runner, movement_frames, 4*10);
                 iSetSpritePosition(&runner, SCRN_WIDTH / 2 - 70, runner_y_initial);
                 iShowSprite(&runner);
             }
@@ -713,20 +730,20 @@ void iKeyboard(unsigned char key)
                 if (key == 'w')
                 {
                     is_jumping = 1;
-                    iChangeSpriteFrames(&runner, jumping_frames, 10);
+                    runner.currentFrame = 0;
                     jump_time = 0.0f;
                 }
                 if (key == 'd')
                 {
                     is_super_jumping = 1;
-                    iChangeSpriteFrames(&runner, jumping_frames, 10);
+                    runner.currentFrame = 0;
                     jump_time = 0.0f;
                 }
 
                 if (key == 's')
                 {
                     is_sliding = 1;
-                    iChangeSpriteFrames(&runner, sliding_frames, 10);
+                    runner.currentFrame = 0;
                 }
             }
         }
