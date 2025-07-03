@@ -6,9 +6,9 @@
 #define BTN_TOTAL 6
 #define BTN_EXIT (BTN_TOTAL - 1)
 #define MAX_SLIDE_DURATION 1.f
-#define JUMP_FRMAE_OFFSET 10
-#define SLIDE_FRMAE_OFFSET 20
-#define DEAD_FRMAE_OFFSET 30
+#define JUMP_FRAME_OFFSET 10
+#define SLIDE_FRAME_OFFSET 20
+#define DEAD_FRAME_OFFSET 30
 
 enum page_status
 {
@@ -145,9 +145,9 @@ void initialize_sprites()
     iLoadFramesFromFolder(idle_frames, "assets/img/sprite/idle");
     // First 10 running, second 10 jumping, third 10 sliding, last 10 dead
     iLoadFramesFromFolder(movement_frames, "assets/img/sprite/running");
-    iLoadFramesFromFolder(movement_frames+JUMP_FRMAE_OFFSET, "assets/img/sprite/jump");
-    iLoadFramesFromFolder(movement_frames+SLIDE_FRMAE_OFFSET, "assets/img/sprite/slide");
-    iLoadFramesFromFolder(movement_frames+DEAD_FRMAE_OFFSET, "assets/img/sprite/dead");
+    iLoadFramesFromFolder(movement_frames+JUMP_FRAME_OFFSET, "assets/img/sprite/jump");
+    iLoadFramesFromFolder(movement_frames+SLIDE_FRAME_OFFSET, "assets/img/sprite/slide");
+    iLoadFramesFromFolder(movement_frames+DEAD_FRAME_OFFSET, "assets/img/sprite/dead");
 
     iInitSprite(&runner, -1);
     iSetSpritePosition(&runner, sprite_x, sprite_y);
@@ -170,9 +170,9 @@ void iAnimateSpriteWithOffset(Sprite *sprite)
         return;
 
     if (is_jumping || is_super_jumping)
-        sprite->currentFrame = (sprite->currentFrame + 1) % 10 + JUMP_FRMAE_OFFSET; 
+        sprite->currentFrame = (sprite->currentFrame + 1) % 10 + JUMP_FRAME_OFFSET; 
     else if (is_sliding)
-        sprite->currentFrame = (sprite->currentFrame + 1) % 10 + SLIDE_FRMAE_OFFSET; 
+        sprite->currentFrame = (sprite->currentFrame + 1) % 10 + SLIDE_FRAME_OFFSET; 
     else
         sprite->currentFrame = (sprite->currentFrame + 1) % 10;
 
