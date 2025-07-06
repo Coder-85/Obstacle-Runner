@@ -45,6 +45,8 @@ int sprite_y = 173;
 int unlock_status[3] = {1, 1, 0};
 int selected_status[3] = {1, 0, 0};
 int game_running = 0;
+int is_dying = 0;
+int is_dying_counter = 0;
 
 // Username input string
 char username[18] = "";
@@ -171,7 +173,9 @@ void iAnimateSpriteWithOffset(Sprite *sprite)
     if (is_jumping || is_super_jumping)
         sprite->currentFrame = (sprite->currentFrame + 1) % 10 + JUMP_FRAME_OFFSET; 
     else if (is_sliding)
-        sprite->currentFrame = (sprite->currentFrame + 1) % 10 + SLIDE_FRAME_OFFSET; 
+        sprite->currentFrame = (sprite->currentFrame + 1) % 10 + SLIDE_FRAME_OFFSET;
+    else if (is_dying)
+        sprite->currentFrame = (sprite->currentFrame + 1) % 10 + DEAD_FRAME_OFFSET;
     else
         sprite->currentFrame = (sprite->currentFrame + 1) % 10;
 
@@ -246,14 +250,26 @@ void iAnimSprites()
         int runner_h = runner.frames[runner.currentFrame].height * runner.scale;
         if (check_collision(runner.x, runner.y, runner_w, runner_h, box_x, box_y, box_w, box_h))
         {
-            game_running = 0;
+            
             is_jumping = 0;
             is_super_jumping = 0;
             is_sliding = 0;
-            runner.y = runner_y_initial;
-            box_active = 0;
-            runner.currentFrame = 0;
+            is_dying = 1;
+            scene_scroll_velocity = 0;
         }
+
+        if(is_dying == 1){
+            is_dying_counter++;
+            if(is_dying_counter == 9){
+                game_running = 0;
+                scene_scroll_velocity = 50.0f;
+                is_dying = 0;
+                is_dying_counter = 0;
+                box_active = 0;
+                runner.y = runner_y_initial;
+            }
+        }
+        
     }
 }
 
@@ -303,7 +319,7 @@ void iDraw()
         iShowImage(bg_x1, 0, "assets/img/bg/game_bg_001.png");
         iShowImage(bg_x2, 0, "assets/img/bg/game_bg_001.png");
 
-        if (game_running == 0)
+        if (game_running == 0 && is_dying == 0)
         {
             int box_w = 350, box_h = 50;
             iSetTransparentColor(20, 20, 20, 0.45);
