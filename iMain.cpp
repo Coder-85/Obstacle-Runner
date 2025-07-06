@@ -63,7 +63,7 @@ int is_super_jumping = 0;
 float jump_time = 0.0f;
 float jump_duration = 0.8f;
 float jump_velocity = 420.0f;
-float super_jump_velocity = 800.0f;
+float super_jump_velocity = 650.0f;
 float g = 1000.0f;
 
 // Sliding variables
@@ -74,17 +74,17 @@ float slide_time = 0.f;
 int box_active = 0;
 int box_x;
 int box_y;
-int box_w = 45 * 1.5f, box_h = 35 * 1.5f;
+int box_w = 45 * 1.5f, box_h = 130 * 1.5f;
 Image box_img;
 
 int get_random_box_x()
 {
-    return 700 + rand() % 400; // random x between 700 and 1100
+    return 900 + rand() % 200; // random x between 900 and 1100
 }
 
 int check_collision(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)
 {
-    return (x1+w1/2>= x2-11*w2/20 && y1-9*h1/20<=y2+h2/2 && x1-w1/2<=x2+11*w2/20);
+    return (x1+w1/2>= x2-w2/2 && y1<=y2+h2 && x1-w1/2<=x2+w2/2);
 }
 
 inline int get_home_option_y(int idx)
@@ -159,7 +159,7 @@ void load_images()
     // Load Coin Img
     iLoadImage(&home_coin_img, "assets/img/objects/coin/coin_small.png");
     iScaleImage(&home_coin_img, 0.5);
-    iLoadImage(&box_img, "assets/img/objects/killer/box.png");
+    iLoadImage(&box_img, "assets/img/objects/killer/pillar.png");
     iScaleImage(&box_img, 1.5f);
 }
 
