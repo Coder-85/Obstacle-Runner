@@ -25,6 +25,7 @@ enum page_status
 
 enum page_status currentPage; // To track which page is being visited currently
 Image home_coin_img;          // Image of coin on the home page
+Image game_score_img;         // Image istead of score word in game
 Sprite runner;                // Sprite for the runner character
 int home_option_color[BTN_TOTAL] = {0};
 // Button labels and positions for home page options
@@ -49,6 +50,7 @@ int game_running = 0;
 int is_dying = 0;
 int is_dying_counter = 0;
 int in_game_score = 0;
+int in_game_earned_coin = 0;
 
 // Username input string
 char username[18] = "";
@@ -172,6 +174,8 @@ void load_images()
     // Load Coin Img
     iLoadImage(&home_coin_img, "assets/img/objects/coin/coin_small.png");
     iScaleImage(&home_coin_img, 0.5);
+    iLoadImage(&game_score_img, "assets/img/objects/medal/score.png");
+    iScaleImage(&game_score_img, 0.07);
     iLoadImage(&box_img, "assets/img/objects/killer/box.png");
     iScaleImage(&box_img, 1.5f);
     iLoadImage(&stone_img, "assets/img/objects/killer/stone.png");
@@ -319,9 +323,9 @@ void iAnimSprites()
                 }
             }
         }
-
+        
         if (is_dying == 1)
-        {
+        {   
             is_dying_counter++;
             if (is_dying_counter == 9)
             {
@@ -334,7 +338,10 @@ void iAnimSprites()
                     object_active[i] = 0;
                 }
                 runner.y = runner_y_initial;
+                in_game_score = 0;
             }
+        }else{
+            in_game_score+=2;
         }
     }
 }
@@ -453,9 +460,19 @@ void iDraw()
                     }
                 }
             }
+            iSetTransparentColor(20, 20, 20, 0.7);
+            iFilledRectangle(860, 530, 140, 80);
+            iSetColor(255, 255, 255);
+            iShowLoadedImage(875, 572, &home_coin_img);
+            iShowLoadedImage(875, 540, &game_score_img);
+
+            char in_game_coin_str[10];
+            sprintf(in_game_coin_str, "%d", in_game_earned_coin);
+            iTextAdvanced(875+40, 577, in_game_coin_str, 0.1, 1, GLUT_STROKE_MONO_ROMAN); // for coin
+
             char in_game_score_str[10];
             sprintf(in_game_score_str, "%d", in_game_score);
-            iTextAdvanced(800, 550, in_game_score_str, 0.3, 1, GLUT_STROKE_MONO_ROMAN);
+            iTextAdvanced(875+40, 545, in_game_score_str, 0.1, 1, GLUT_STROKE_MONO_ROMAN); // for score
         }
     }
     else if (currentPage == GAME_PAUSED)
