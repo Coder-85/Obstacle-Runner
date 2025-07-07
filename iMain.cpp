@@ -1,4 +1,5 @@
 #include "iGraphics.h"
+#include "iSound.h"
 #include <time.h>
 
 #define SCRN_WIDTH 1000
@@ -22,6 +23,11 @@ enum page_status
     EXIT,
     GAME_PAUSED
 };
+
+// Sound Variables
+int is_sound_on = 1;
+int sound_bg_chnl;
+int running_sound;
 
 enum page_status currentPage; // To track which page is being visited currently
 Image home_coin_img;          // Image of coin on the home page
@@ -335,6 +341,10 @@ void iAnimSprites()
             coin_active = 0;
             coin_collided = 1;
             in_game_earned_coin++;
+            if(is_sound_on){
+                iPlaySound("assets/sound/coin_collect.wav", false, 50);
+            }
+            
         }
 
         for (int i = 0; i < MAX_OBJECT; i++)
@@ -380,6 +390,11 @@ void iAnimSprites()
                 in_game_score = 0;
                 in_game_earned_coin = 0;
                 coin_x = 0, coin_w = 0;
+            }else if(is_dying_counter == 1){
+                if(is_sound_on){
+                    iPlaySound("assets/sound/game_over.wav", false, 50);
+                }
+                
             }
         }
         else
@@ -484,6 +499,7 @@ void iDraw()
         else
         {
             iShowSprite(&runner);
+            iPauseSound(sound_bg_chnl);
             // Draw objects
             for (int i = 0; i < MAX_OBJECT; i++)
             {
@@ -913,6 +929,8 @@ void iKeyboard(unsigned char key)
                     is_sliding = 1;
                     runner.currentFrame = 0;
                 }
+            }else{
+                
             }
         }
     }
@@ -923,6 +941,16 @@ void iKeyboard(unsigned char key)
             currentPage = PLAY;
             game_running = 1;
             iAnimateSpriteWithOffset(&runner);
+        }
+    }
+
+    if(key == 'B' || key == 'b'){
+        if(is_sound_on == 1){
+            iPauseSound(sound_bg_chnl);
+            is_sound_on = 0;
+        }else{
+            iResumeSound(sound_bg_chnl);
+            is_sound_on = 1;
         }
     }
 }
@@ -959,6 +987,10 @@ int main(int argc, char *argv[])
     load_images();
     iSetTimer(1, iAnimSprites);
     iSetTimer(100, iAnimCaret); // Add caret animation timer
+
+    // initialize sounds
+    iInitializeSound();
+	sound_bg_chnl = iPlaySound("assets/sound/bg.wav", true, 50);
     iInitialize(SCRN_WIDTH, SCRN_HEIGHT, "Obstacle Runner");
     return 0;
 }
