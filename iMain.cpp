@@ -48,6 +48,7 @@ int selected_status[3] = {1, 0, 0};
 int game_running = 0;
 int is_dying = 0;
 int is_dying_counter = 0;
+int in_game_score = 0;
 
 // Username input string
 char username[18] = "";
@@ -96,7 +97,7 @@ int check_collision_jumping(int x1, int y1, int w1, int h1, int x2, int y2, int 
 
 int check_collision_sliding(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)
 {
-    return (x1 + w1 / 2 >= x2 - w2 / 2 && y1 >= y2 - h2 / 2 && x1 - w1 / 2 <= x2 + w2 / 2);
+    return (x1 + w1 / 2 >= x2 - w2 / 2 && y1+6*h1/5 >= y2 - 3*h2/5 && x1 - w1 / 2 <= x2 + w2 / 2);
 }
 
 inline int get_home_option_y(int idx)
@@ -433,7 +434,7 @@ void iDraw()
         else
         {
             iShowSprite(&runner);
-            // Draw box
+            // Draw objects
             for (int i = 0; i < MAX_OBJECT; i++)
             {
                 if (object_active[i])
@@ -452,6 +453,9 @@ void iDraw()
                     }
                 }
             }
+            char in_game_score_str[10];
+            sprintf(in_game_score_str, "%d", in_game_score);
+            iTextAdvanced(800, 550, in_game_score_str, 0.3, 1, GLUT_STROKE_MONO_ROMAN);
         }
     }
     else if (currentPage == GAME_PAUSED)
