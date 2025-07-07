@@ -11,6 +11,7 @@
 #define SLIDE_FRAME_OFFSET 20
 #define DEAD_FRAME_OFFSET 30
 #define MAX_OBJECT 2
+#define MAX_COIN 3
 
 enum page_status
 {
@@ -30,6 +31,7 @@ int sound_bg_chnl;
 int running_sound;
 
 enum page_status currentPage; // To track which page is being visited currently
+Image level_bg_img[3];        // Background image for the level
 Image home_coin_img;          // Image of coin on the home page
 Image game_score_img;         // Image istead of score word in game
 Sprite runner;                // Sprite for the runner character
@@ -57,6 +59,12 @@ int is_dying = 0;
 int is_dying_counter = 0;
 int in_game_score = 0;
 int in_game_earned_coin = 0;
+int is_paused = 0;
+int is_game_over = 0;
+
+// Menu variables
+int paused_btn_highlight[2];
+int gameover_btn_highlight[2];
 
 // Username input string
 char username[18] = "";
@@ -67,7 +75,7 @@ int caret_visible = 1;
 int caret_timer = 0;
 
 float scene_scroll = 0.f;
-float scene_scroll_velocity = 50.f;
+float scene_scroll_velocity = 30.f;
 
 // Jumping vairables
 int is_jumping = 0;
@@ -90,9 +98,11 @@ int object_y[MAX_OBJECT];
 int object_w[MAX_OBJECT], object_h[MAX_OBJECT];
 
 // Coin variables
-int coin_active = 0;
-int coin_collided = 0;
-int coin_x = 0, coin_y, coin_w = 0, coin_h;
+int coin_active[MAX_COIN];
+int coin_collided[MAX_COIN];
+int coin_x[MAX_COIN];
+int coin_y[MAX_COIN];
+int coin_w = 45 * 0.5, coin_h = 45 * 0.5;
 
 // Objects img
 Image box_img;
@@ -199,6 +209,13 @@ void load_images()
     iScaleImage(&stone_img, 1.6f);
     iLoadImage(&pillar_img, "assets/img/objects/killer/pillar.png");
     iScaleImage(&pillar_img, 1.5f);
+    for (int i = 0; i < 3; i++)
+    {
+        char bg_path[50];
+        sprintf(bg_path, "assets/img/bg/game_bg_%03d.png", i + 1);
+        printf("%s\n", bg_path);
+        iLoadImage(&level_bg_img[i], bg_path);
+    }
 }
 
 void iAnimateSpriteWithOffset(Sprite *sprite)
@@ -220,6 +237,9 @@ void iAnimateSpriteWithOffset(Sprite *sprite)
 
 void iAnimSprites()
 {
+    if (is_paused || is_game_over)
+        return;
+
     iAnimateSpriteWithOffset(&runner);
     if (currentPage == PLAY && game_running)
     {
@@ -312,39 +332,52 @@ void iAnimSprites()
             }
         }
 
-        if (!coin_active || coin_x + coin_w < 0)
-        {
-            if (coin_collided && coin_x + coin_w > 0)
-            {
-                coin_x -= scene_scroll_velocity;
-            }
-            else
-            {
-                coin_active = 1;
-                coin_y = runner_y_initial;
-                coin_x = object_x[0] + rand() % (600 - 100 + 1) + 100;
-                coin_w = 45 * 0.5, coin_h = 45 * 0.5;
-                coin_collided = 0;
-            }
-        }
-        else
-        {
-            coin_x -= scene_scroll_velocity;
-        }
-
         // Check collision with runner
         int runner_w = runner.frames[runner.currentFrame].width * runner.scale;
         int runner_h = runner.frames[runner.currentFrame].height * runner.scale;
 
-        if (check_collision_with_coin(runner.x, runner.y, runner_w, runner_h, coin_x, coin_y, coin_w, coin_h))
+        for (int i = 0; i < MAX_COIN; i++)
         {
-            coin_active = 0;
-            coin_collided = 1;
-            in_game_earned_coin++;
-            if(is_sound_on){
-                iPlaySound("assets/sound/coin_collect.wav", false, 50);
+            if (!coin_active[i] || coin_x[i] + coin_w < 0)
+            {
+                if (coin_collided[i] && coin_x[i] + coin_w > 0)
+                {
+                    coin_x[i] -= scene_scroll_velocity;
+                }
+                else
+                {
+                    coin_active[i] = 1;
+                    int on_top = rand() % 2;
+                    if (i == 0 && on_top)
+                    {
+                        int obj_idx = 0;
+                        coin_x[i] = object_x[obj_idx] + (object_w[obj_idx] / 2) - (coin_w / 2);
+                        coin_y[i] = object_y[obj_idx] + object_h[obj_idx] + 20; // 20 pixels above the object
+                    }
+                    else
+                    {
+                        coin_y[i] = runner_y_initial;
+                        coin_x[i] = object_x[0] + rand() % (600 - 100 + 1) + 100;
+                    }
+                    coin_collided[i] = 0;
+                }
             }
-            
+            else
+            {
+                coin_x[i] -= scene_scroll_velocity;
+            }
+
+            if (check_collision_with_coin(runner.x, runner.y, runner_w, runner_h, coin_x[i], coin_y[i], coin_w, coin_h))
+            {
+                coin_active[i] = 0;
+                coin_collided[i] = 1;
+                if (!is_dying)
+                    in_game_earned_coin++;
+                if (is_sound_on)
+                {
+                    iPlaySound("assets/sound/coin_collect.wav", false, 50);
+                }
+            }
         }
 
         for (int i = 0; i < MAX_OBJECT; i++)
@@ -376,10 +409,9 @@ void iAnimSprites()
         if (is_dying == 1)
         {
             is_dying_counter++;
-            if (is_dying_counter == 9)
+            if (is_dying_counter == 8)
             {
-                game_running = 0;
-                scene_scroll_velocity = 50.0f;
+                scene_scroll_velocity = 30.0f;
                 is_dying = 0;
                 is_dying_counter = 0;
                 for (int i = 0; i < MAX_OBJECT; i++)
@@ -387,14 +419,17 @@ void iAnimSprites()
                     object_active[i] = 0;
                 }
                 runner.y = runner_y_initial;
-                in_game_score = 0;
-                in_game_earned_coin = 0;
-                coin_x = 0, coin_w = 0;
-            }else if(is_dying_counter == 1){
-                if(is_sound_on){
+
+                memset(coin_x, 0, sizeof(coin_x));
+                memset(coin_y, 0, sizeof(coin_y));
+                is_game_over = 1;
+            }
+            if (is_dying_counter == 1)
+            {
+                if (is_sound_on)
+                {
                     iPlaySound("assets/sound/game_over.wav", false, 50);
                 }
-                
             }
         }
         else
@@ -447,8 +482,8 @@ void iDraw()
         int bg_width = 2000;
         int bg_x1 = -scene_scroll;
         int bg_x2 = bg_x1 + bg_width;
-        iShowImage(bg_x1, 0, "assets/img/bg/game_bg_001.png");
-        iShowImage(bg_x2, 0, "assets/img/bg/game_bg_001.png");
+        iShowLoadedImage(bg_x1, 0, &level_bg_img[0]);
+        iShowLoadedImage(bg_x2, 0, &level_bg_img[0]);
 
         if (game_running == 0 && is_dying == 0)
         {
@@ -498,7 +533,8 @@ void iDraw()
 
         else
         {
-            iShowSprite(&runner);
+            if (!is_game_over)
+                iShowSprite(&runner);
             iPauseSound(sound_bg_chnl);
             // Draw objects
             for (int i = 0; i < MAX_OBJECT; i++)
@@ -519,37 +555,132 @@ void iDraw()
                     }
                 }
             }
-            // Draw coins
-            if (coin_active)
+            if (!is_paused && !is_game_over)
             {
-                iShowLoadedImage(coin_x, coin_y, &home_coin_img);
+                // Draw coins
+                for (int i = 0; i < MAX_COIN; i++)
+                {
+                    if (coin_active[i])
+                    {
+                        iShowLoadedImage(coin_x[i], coin_y[i], &home_coin_img);
+                    }
+                }
+
+                iSetTransparentColor(20, 20, 20, 0.7);
+                iFilledRectangle(860, 530, 140, 80);
+                iSetColor(255, 255, 255);
+                iShowLoadedImage(875, 572, &home_coin_img);
+                iShowLoadedImage(875, 540, &game_score_img);
+
+                char in_game_coin_str[10];
+                sprintf(in_game_coin_str, "%d", in_game_earned_coin);
+                iTextAdvanced(875 + 40, 577, in_game_coin_str, 0.1, 1, GLUT_STROKE_MONO_ROMAN); // for coin
+
+                char in_game_score_str[10];
+                sprintf(in_game_score_str, "%d", in_game_score);
+                iTextAdvanced(875 + 40, 545, in_game_score_str, 0.1, 1, GLUT_STROKE_MONO_ROMAN); // for score
             }
-            else
-            {
-            }
-            iSetTransparentColor(20, 20, 20, 0.7);
-            iFilledRectangle(860, 530, 140, 80);
+        }
+
+        if (is_paused == 1)
+        {
+            iSetTransparentColor(20, 20, 20, 0.45);
+            iFilledRectangle(0, 0, SCRN_WIDTH, SCRN_HEIGHT);
+            // Game Paused text
+            const char *paused_label = "Game Paused";
+            float paused_scale = 0.22f;
+            float paused_width = get_text_width(paused_label, paused_scale, GLUT_STROKE_MONO_ROMAN);
             iSetColor(255, 255, 255);
-            iShowLoadedImage(875, 572, &home_coin_img);
-            iShowLoadedImage(875, 540, &game_score_img);
+            iTextAdvanced((SCRN_WIDTH - paused_width) / 2, SCRN_HEIGHT - 120, paused_label, paused_scale, 2, GLUT_STROKE_MONO_ROMAN);
+            // Buttons
+            int btn_w = 250, btn_h = 50;
+            int btn_x = (SCRN_WIDTH - btn_w) / 2;
+            int btn_y_resume = SCRN_HEIGHT / 2 + 10;
+            int btn_y_exit = SCRN_HEIGHT / 2 - 70;
+            // Resume button
+            if (paused_btn_highlight[0])
+                iSetTransparentColor(2, 168, 77, 0.4);
+            else
+                iSetColor(255, 255, 255);
+            if (paused_btn_highlight[0])
+                iFilledRectangle(btn_x, btn_y_resume, btn_w, btn_h);
+            else
+                iRectangle(btn_x, btn_y_resume, btn_w, btn_h);
+            const char *resume_label = "Resume";
+            float resume_width = get_text_width(resume_label, 0.15f, GLUT_STROKE_MONO_ROMAN);
+            iSetColor(255, 255, 255);
+            iTextAdvanced(btn_x + (btn_w - resume_width) / 2, btn_y_resume + 15, resume_label, 0.15f, 1, GLUT_STROKE_MONO_ROMAN);
+            // Exit to Menu button
+            if (paused_btn_highlight[1])
+                iSetTransparentColor(168, 2, 2, 0.4);
+            else
+                iSetColor(255, 255, 255);
+            if (paused_btn_highlight[1])
+                iFilledRectangle(btn_x, btn_y_exit, btn_w, btn_h);
+            else
+                iRectangle(btn_x, btn_y_exit, btn_w, btn_h);
+            const char *exit_label = "Exit to Menu";
+            float exit_width = get_text_width(exit_label, 0.15f, GLUT_STROKE_MONO_ROMAN);
+            iSetColor(255, 255, 255);
+            iTextAdvanced(btn_x + (btn_w - exit_width) / 2, btn_y_exit + 15, exit_label, 0.15f, 1, GLUT_STROKE_MONO_ROMAN);
+        }
 
-            char in_game_coin_str[10];
-            sprintf(in_game_coin_str, "%d", in_game_earned_coin);
-            iTextAdvanced(875 + 40, 577, in_game_coin_str, 0.1, 1, GLUT_STROKE_MONO_ROMAN); // for coin
+        if (is_game_over)
+        {
+            iSetTransparentColor(20, 20, 20, 0.55);
+            iFilledRectangle(0, 0, SCRN_WIDTH, SCRN_HEIGHT);
+            const char *over_label = "Game Over!";
+            float over_scale = 0.22f;
+            float over_width = get_text_width(over_label, over_scale, GLUT_STROKE_MONO_ROMAN);
+            iSetColor(255, 0, 0);
+            iTextAdvanced((SCRN_WIDTH - over_width) / 2, SCRN_HEIGHT - 120, over_label, over_scale, 2, GLUT_STROKE_MONO_ROMAN); // Show score and coin count
 
-            char in_game_score_str[10];
-            sprintf(in_game_score_str, "%d", in_game_score);
-            iTextAdvanced(875 + 40, 545, in_game_score_str, 0.1, 1, GLUT_STROKE_MONO_ROMAN); // for score
+            // Stats info
+            char score_str[32], coin_str[32];
+            sprintf(score_str, "Score: %d", in_game_score);
+            sprintf(coin_str, "Coins: %d", in_game_earned_coin);
+            float info_scale = 0.15f;
+            float score_width = get_text_width(score_str, info_scale, GLUT_STROKE_MONO_ROMAN);
+            float coin_width = get_text_width(coin_str, info_scale, GLUT_STROKE_MONO_ROMAN);
+            iSetColor(255, 255, 0);
+            iTextAdvanced((SCRN_WIDTH - score_width) / 2, SCRN_HEIGHT / 2 + 120, score_str, info_scale, 1, GLUT_STROKE_MONO_ROMAN);
+            iSetColor(255, 255, 0);
+            iTextAdvanced((SCRN_WIDTH - coin_width) / 2, SCRN_HEIGHT / 2 + 90, coin_str, info_scale, 1, GLUT_STROKE_MONO_ROMAN);
+
+            // Buttons
+            int btn_w = 250, btn_h = 50;
+            int btn_x = (SCRN_WIDTH - btn_w) / 2;
+            int btn_y_play = SCRN_HEIGHT / 2 + 10;
+            int btn_y_exit = SCRN_HEIGHT / 2 - 70;
+            // Play Again button
+            if (gameover_btn_highlight[0])
+                iSetTransparentColor(2, 168, 77, 0.4);
+            else
+                iSetColor(255, 255, 255);
+            if (gameover_btn_highlight[0])
+                iFilledRectangle(btn_x, btn_y_play, btn_w, btn_h);
+            else
+                iRectangle(btn_x, btn_y_play, btn_w, btn_h);
+            const char *play_label = "Play Again";
+            float play_width = get_text_width(play_label, 0.15f, GLUT_STROKE_MONO_ROMAN);
+            iSetColor(255, 255, 255);
+            iTextAdvanced(btn_x + (btn_w - play_width) / 2, btn_y_play + 15, play_label, 0.15f, 1, GLUT_STROKE_MONO_ROMAN);
+            // Exit to Menu button
+            if (gameover_btn_highlight[1])
+                iSetTransparentColor(168, 2, 2, 0.4);
+            else
+                iSetColor(255, 255, 255);
+            if (gameover_btn_highlight[1])
+                iFilledRectangle(btn_x, btn_y_exit, btn_w, btn_h);
+            else
+                iRectangle(btn_x, btn_y_exit, btn_w, btn_h);
+            const char *exit_label = "Exit to Menu";
+            float exit_width = get_text_width(exit_label, 0.15f, GLUT_STROKE_MONO_ROMAN);
+            iSetColor(255, 255, 255);
+            iTextAdvanced(btn_x + (btn_w - exit_width) / 2, btn_y_exit + 15, exit_label, 0.15f, 1, GLUT_STROKE_MONO_ROMAN);
         }
     }
-    else if (currentPage == GAME_PAUSED)
-    {
-        iClear();
-        iShowImage(0, 0, "assets/img/bg/paused_bg_001.png");
-        iSetSpritePosition(&runner, sprite_x, sprite_y);
-        iShowSprite(&runner);
-        iText(700, 300, "GAME PAUSED PAGE");
-    }
+
     else if (currentPage == RESUME)
     {
         iClear();
@@ -753,6 +884,25 @@ void iMouseMove(int mx, int my)
                 start_btn_highlight = 0;
         }
     }
+    if (is_paused == 1)
+    {
+        int btn_w = 250, btn_h = 50;
+        int btn_x = (SCRN_WIDTH - btn_w) / 2;
+        int btn_y_resume = SCRN_HEIGHT / 2 + 10;
+        int btn_y_exit = SCRN_HEIGHT / 2 - 70;
+        paused_btn_highlight[0] = (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y_resume && my <= btn_y_resume + btn_h);
+        paused_btn_highlight[1] = (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y_exit && my <= btn_y_exit + btn_h);
+    }
+
+    if (is_game_over)
+    {
+        int btn_w = 250, btn_h = 50;
+        int btn_x = (SCRN_WIDTH - btn_w) / 2;
+        int btn_y_play = SCRN_HEIGHT / 2 + 10;
+        int btn_y_exit = SCRN_HEIGHT / 2 - 70;
+        gameover_btn_highlight[0] = (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y_play && my <= btn_y_play + btn_h);
+        gameover_btn_highlight[1] = (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y_exit && my <= btn_y_exit + btn_h);
+    }
 }
 
 /*
@@ -845,6 +995,57 @@ void iMouse(int button, int state, int mx, int my)
                 }
             }
         }
+        else if (currentPage == PLAY && is_paused == 1 && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
+        {
+            int btn_w = 250, btn_h = 50;
+            int btn_x = (SCRN_WIDTH - btn_w) / 2;
+            int btn_y_resume = SCRN_HEIGHT / 2 + 10;
+            int btn_y_exit = SCRN_HEIGHT / 2 - 70;
+            if (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y_resume && my <= btn_y_resume + btn_h)
+            {
+                is_paused = 0;
+            }
+            else if (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y_exit && my <= btn_y_exit + btn_h)
+            {
+                currentPage = HOME;
+                game_running = 0;
+                iSetSpritePosition(&runner, sprite_x, sprite_y);
+                iChangeSpriteFrames(&runner, idle_frames, 10);
+                is_paused = 0;
+                in_game_score = 0;
+                in_game_earned_coin = 0;
+                memset(coin_x, 0, sizeof(coin_x));
+                memset(coin_y, 0, sizeof(coin_y));
+            }
+        }
+        else if (currentPage == PLAY && is_game_over && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
+        {
+            int btn_w = 250, btn_h = 50;
+            int btn_x = (SCRN_WIDTH - btn_w) / 2;
+            int btn_y_play = SCRN_HEIGHT / 2 + 10;
+            int btn_y_exit = SCRN_HEIGHT / 2 - 70;
+            if (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y_play && my <= btn_y_play + btn_h)
+            {
+                game_running = 1;
+                is_game_over = 0;
+                in_game_score = 0;
+                in_game_earned_coin = 0;
+                memset(coin_x, 0, sizeof(coin_x));
+                memset(coin_y, 0, sizeof(coin_y));
+            }
+            else if (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y_exit && my <= btn_y_exit + btn_h)
+            {
+                currentPage = HOME;
+                game_running = 0;
+                iSetSpritePosition(&runner, sprite_x, sprite_y);
+                iChangeSpriteFrames(&runner, idle_frames, 10);
+                is_game_over = 0;
+                in_game_score = 0;
+                in_game_earned_coin = 0;
+                memset(coin_x, 0, sizeof(coin_x));
+                memset(coin_y, 0, sizeof(coin_y));
+            }
+        }
     }
     if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN)
     {
@@ -886,7 +1087,6 @@ void iKeyboard(unsigned char key)
     {
         if (game_running == 0)
         {
-            // Accept username input (enter ignored)
             if (key == 8) // Backspace
             {
                 int len = strlen(username);
@@ -900,13 +1100,11 @@ void iKeyboard(unsigned char key)
                 username[len + 1] = '\0';
             }
         }
-        else if (game_running == 1)
+        else if (game_running == 1 && !is_paused && !is_game_over)
         {
             if (key == 27)
             {
-                currentPage = GAME_PAUSED;
-                game_running = 0;
-                iAnimateSpriteWithOffset(&runner);
+                is_paused = !is_paused;
             }
             if (!is_jumping && !is_super_jumping && !is_sliding && !is_dying)
             {
@@ -929,26 +1127,19 @@ void iKeyboard(unsigned char key)
                     is_sliding = 1;
                     runner.currentFrame = 0;
                 }
-            }else{
-                
             }
         }
     }
-    else if (currentPage == GAME_PAUSED)
-    {
-        if (key == 27)
-        {
-            currentPage = PLAY;
-            game_running = 1;
-            iAnimateSpriteWithOffset(&runner);
-        }
-    }
 
-    if(key == 'B' || key == 'b'){
-        if(is_sound_on == 1){
+    if (key == 'B' || key == 'b')
+    {
+        if (is_sound_on == 1)
+        {
             iPauseSound(sound_bg_chnl);
             is_sound_on = 0;
-        }else{
+        }
+        else
+        {
             iResumeSound(sound_bg_chnl);
             is_sound_on = 1;
         }
@@ -985,12 +1176,12 @@ int main(int argc, char *argv[])
     // place your own initialization codes here.
     initialize_sprites();
     load_images();
-    iSetTimer(1, iAnimSprites);
+    iSetTimer(50, iAnimSprites);
     iSetTimer(100, iAnimCaret); // Add caret animation timer
 
     // initialize sounds
     iInitializeSound();
-	sound_bg_chnl = iPlaySound("assets/sound/bg.wav", true, 50);
+    sound_bg_chnl = iPlaySound("assets/sound/bg.wav", true, 50);
     iInitialize(SCRN_WIDTH, SCRN_HEIGHT, "Obstacle Runner");
     return 0;
 }
