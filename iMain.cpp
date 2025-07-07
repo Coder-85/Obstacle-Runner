@@ -76,13 +76,19 @@ float g = 1000.0f;
 int is_sliding = 0;
 float slide_time = 0.f;
 
-// Box obstacle variable
+// Obstacle variable
 int object_active[MAX_OBJECT] = {0};
 int object_idx[MAX_OBJECT] = {0};
 int object_x[MAX_OBJECT];
 int object_y[MAX_OBJECT];
 int object_w[MAX_OBJECT], object_h[MAX_OBJECT];
 
+// Coin variables
+int coin_active = 0;
+int coin_collided = 0;
+int coin_x = 0, coin_y, coin_w = 0, coin_h;
+
+// Objects img
 Image box_img;
 Image pillar_img;
 Image stone_img;
@@ -99,7 +105,12 @@ int check_collision_jumping(int x1, int y1, int w1, int h1, int x2, int y2, int 
 
 int check_collision_sliding(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)
 {
-    return (x1 + w1 / 2 >= x2 - w2 / 2 && y1+6*h1/5 >= y2 - 3*h2/5 && x1 - w1 / 2 <= x2 + w2 / 2);
+    return (x1 + w1 / 2 >= x2 - w2 / 2 && y1 + 6 * h1 / 5 >= y2 - 3 * h2 / 5 && x1 - w1 / 2 <= x2 + w2 / 2);
+}
+
+int check_collision_with_coin(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)
+{
+    return (x1 + w1 >= x2 - w2 / 2 && y1 - h1 / 2 <= y2 + h2 / 2 && x1 - w1 / 2 <= x2 + w2 / 2);
 }
 
 inline int get_home_option_y(int idx)
@@ -295,9 +306,37 @@ void iAnimSprites()
             }
         }
 
+        if (!coin_active || coin_x + coin_w < 0)
+        {
+            if (coin_collided && coin_x + coin_w > 0)
+            {
+                coin_x -= scene_scroll_velocity;
+            }
+            else
+            {
+                coin_active = 1;
+                coin_y = runner_y_initial;
+                coin_x = object_x[0] + rand() % (600 - 100 + 1) + 100;
+                coin_w = 45 * 0.5, coin_h = 45 * 0.5;
+                coin_collided = 0;
+            }
+        }
+        else
+        {
+            coin_x -= scene_scroll_velocity;
+        }
+
         // Check collision with runner
         int runner_w = runner.frames[runner.currentFrame].width * runner.scale;
         int runner_h = runner.frames[runner.currentFrame].height * runner.scale;
+
+        if (check_collision_with_coin(runner.x, runner.y, runner_w, runner_h, coin_x, coin_y, coin_w, coin_h))
+        {
+            coin_active = 0;
+            coin_collided = 1;
+            in_game_earned_coin++;
+        }
+
         for (int i = 0; i < MAX_OBJECT; i++)
         {
             if (object_idx[i] != 2)
@@ -323,9 +362,9 @@ void iAnimSprites()
                 }
             }
         }
-        
+
         if (is_dying == 1)
-        {   
+        {
             is_dying_counter++;
             if (is_dying_counter == 9)
             {
@@ -339,9 +378,13 @@ void iAnimSprites()
                 }
                 runner.y = runner_y_initial;
                 in_game_score = 0;
+                in_game_earned_coin = 0;
+                coin_x = 0, coin_w = 0;
             }
-        }else{
-            in_game_score+=2;
+        }
+        else
+        {
+            in_game_score += 2;
         }
     }
 }
@@ -460,6 +503,14 @@ void iDraw()
                     }
                 }
             }
+            // Draw coins
+            if (coin_active)
+            {
+                iShowLoadedImage(coin_x, coin_y, &home_coin_img);
+            }
+            else
+            {
+            }
             iSetTransparentColor(20, 20, 20, 0.7);
             iFilledRectangle(860, 530, 140, 80);
             iSetColor(255, 255, 255);
@@ -468,11 +519,11 @@ void iDraw()
 
             char in_game_coin_str[10];
             sprintf(in_game_coin_str, "%d", in_game_earned_coin);
-            iTextAdvanced(875+40, 577, in_game_coin_str, 0.1, 1, GLUT_STROKE_MONO_ROMAN); // for coin
+            iTextAdvanced(875 + 40, 577, in_game_coin_str, 0.1, 1, GLUT_STROKE_MONO_ROMAN); // for coin
 
             char in_game_score_str[10];
             sprintf(in_game_score_str, "%d", in_game_score);
-            iTextAdvanced(875+40, 545, in_game_score_str, 0.1, 1, GLUT_STROKE_MONO_ROMAN); // for score
+            iTextAdvanced(875 + 40, 545, in_game_score_str, 0.1, 1, GLUT_STROKE_MONO_ROMAN); // for score
         }
     }
     else if (currentPage == GAME_PAUSED)
@@ -838,6 +889,8 @@ void iKeyboard(unsigned char key)
             if (key == 27)
             {
                 currentPage = GAME_PAUSED;
+                game_running = 0;
+                iAnimateSpriteWithOffset(&runner);
             }
             if (!is_jumping && !is_super_jumping && !is_sliding && !is_dying)
             {
@@ -868,6 +921,8 @@ void iKeyboard(unsigned char key)
         if (key == 27)
         {
             currentPage = PLAY;
+            game_running = 1;
+            iAnimateSpriteWithOffset(&runner);
         }
     }
 }
