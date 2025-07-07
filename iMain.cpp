@@ -9,6 +9,7 @@
 #define JUMP_FRAME_OFFSET 10
 #define SLIDE_FRAME_OFFSET 20
 #define DEAD_FRAME_OFFSET 30
+#define MAX_OBJECT 2
 
 enum page_status
 {
@@ -35,7 +36,7 @@ const int runner_y_initial = 136;
 
 // Sprite Images
 Image idle_frames[10];
-Image movement_frames[4*10];
+Image movement_frames[4 * 10];
 
 // coordinate of the sprite image
 int sprite_x = 192;
@@ -73,20 +74,29 @@ int is_sliding = 0;
 float slide_time = 0.f;
 
 // Box obstacle variable
-int box_active = 0;
-int box_x;
-int box_y;
-int box_w = 45 * 1.5f, box_h = 130 * 1.5f;
-Image box_img;
+int object_active[MAX_OBJECT] = {0};
+int object_idx[MAX_OBJECT] = {0};
+int object_x[MAX_OBJECT];
+int object_y[MAX_OBJECT];
+int object_w[MAX_OBJECT], object_h[MAX_OBJECT];
 
-int get_random_box_x()
+Image box_img;
+Image pillar_img;
+Image stone_img;
+
+int get_random_object1_x()
 {
     return 900 + rand() % 200; // random x between 900 and 1100
 }
 
-int check_collision(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)
+int check_collision_jumping(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)
 {
-    return (x1+w1/2>= x2-w2/2 && y1<=y2+h2 && x1-w1/2<=x2+w2/2);
+    return (x1 + w1 / 2 >= x2 - w2 / 2 && y1 <= y2 + h2 && x1 - w1 / 2 <= x2 + w2 / 2);
+}
+
+int check_collision_sliding(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)
+{
+    return (x1 + w1 / 2 >= x2 - w2 / 2 && y1 >= y2 - h2 / 2 && x1 - w1 / 2 <= x2 + w2 / 2);
 }
 
 inline int get_home_option_y(int idx)
@@ -146,9 +156,9 @@ void initialize_sprites()
     iLoadFramesFromFolder(idle_frames, "assets/img/sprite/idle");
     // First 10 running, second 10 jumping, third 10 sliding, last 10 dead
     iLoadFramesFromFolder(movement_frames, "assets/img/sprite/running");
-    iLoadFramesFromFolder(movement_frames+JUMP_FRAME_OFFSET, "assets/img/sprite/jump");
-    iLoadFramesFromFolder(movement_frames+SLIDE_FRAME_OFFSET, "assets/img/sprite/slide");
-    iLoadFramesFromFolder(movement_frames+DEAD_FRAME_OFFSET, "assets/img/sprite/dead");
+    iLoadFramesFromFolder(movement_frames + JUMP_FRAME_OFFSET, "assets/img/sprite/jump");
+    iLoadFramesFromFolder(movement_frames + SLIDE_FRAME_OFFSET, "assets/img/sprite/slide");
+    iLoadFramesFromFolder(movement_frames + DEAD_FRAME_OFFSET, "assets/img/sprite/dead");
 
     iInitSprite(&runner, -1);
     iSetSpritePosition(&runner, sprite_x, sprite_y);
@@ -161,8 +171,12 @@ void load_images()
     // Load Coin Img
     iLoadImage(&home_coin_img, "assets/img/objects/coin/coin_small.png");
     iScaleImage(&home_coin_img, 0.5);
-    iLoadImage(&box_img, "assets/img/objects/killer/pillar.png");
+    iLoadImage(&box_img, "assets/img/objects/killer/box.png");
     iScaleImage(&box_img, 1.5f);
+    iLoadImage(&stone_img, "assets/img/objects/killer/stone.png");
+    iScaleImage(&stone_img, 1.6f);
+    iLoadImage(&pillar_img, "assets/img/objects/killer/pillar.png");
+    iScaleImage(&pillar_img, 1.5f);
 }
 
 void iAnimateSpriteWithOffset(Sprite *sprite)
@@ -171,7 +185,7 @@ void iAnimateSpriteWithOffset(Sprite *sprite)
         return;
 
     if (is_jumping || is_super_jumping)
-        sprite->currentFrame = (sprite->currentFrame + 1) % 10 + JUMP_FRAME_OFFSET; 
+        sprite->currentFrame = (sprite->currentFrame + 1) % 10 + JUMP_FRAME_OFFSET;
     else if (is_sliding)
         sprite->currentFrame = (sprite->currentFrame + 1) % 10 + SLIDE_FRAME_OFFSET;
     else if (is_dying)
@@ -234,42 +248,93 @@ void iAnimSprites()
 
     if (currentPage == PLAY && game_running)
     {
-        if (!box_active || box_x + box_w < 0)
+
+        for (int i = 0; i < MAX_OBJECT; i++)
         {
-            box_x = get_random_box_x();
-            box_y = runner_y_initial;
-            box_active = 1;
-        }
-        else
-        {
-            box_x -= scene_scroll_velocity;
+            if (!object_active[i] || object_x[i] + object_w[i] < 0)
+            {
+                object_idx[i] = rand() % 3;
+                if (object_idx[i] == 0)
+                {
+                    object_w[i] = 45 * 1.5, object_h[i] = 35 * 1.5;
+                }
+                else if (object_idx[i] == 1)
+                {
+                    object_w[i] = 45 * 1.5, object_h[i] = 130 * 1.5;
+                }
+                else if (object_idx[i] == 2)
+                {
+                    object_w[i] = 76 * 1.6, object_h[i] = 77 * 1.6;
+                }
+                if (i == 0)
+                {
+                    object_x[i] = get_random_object1_x() + 400;
+                }
+                else if (i == 1)
+                {
+                    object_x[i] = object_x[0] + 750;
+                }
+                if (object_idx[i] == 2)
+                {
+                    object_y[i] = runner_y_initial + 100;
+                }
+                else
+                {
+                    object_y[i] = runner_y_initial;
+                }
+                object_active[i] = 1;
+            }
+            else
+            {
+                object_x[i] -= scene_scroll_velocity;
+            }
         }
 
         // Check collision with runner
         int runner_w = runner.frames[runner.currentFrame].width * runner.scale;
         int runner_h = runner.frames[runner.currentFrame].height * runner.scale;
-        if (check_collision(runner.x, runner.y, runner_w, runner_h, box_x, box_y, box_w, box_h))
+        for (int i = 0; i < MAX_OBJECT; i++)
         {
-            
-            is_jumping = 0;
-            is_super_jumping = 0;
-            is_sliding = 0;
-            is_dying = 1;
-            scene_scroll_velocity = 0;
+            if (object_idx[i] != 2)
+            {
+                if (check_collision_jumping(runner.x, runner.y, runner_w, runner_h, object_x[i], object_y[i], object_w[i], object_h[i]))
+                {
+                    is_jumping = 0;
+                    is_super_jumping = 0;
+                    is_sliding = 0;
+                    is_dying = 1;
+                    scene_scroll_velocity = 0;
+                }
+            }
+            else
+            {
+                if (check_collision_sliding(runner.x, runner.y, runner_w, runner_h, object_x[i], object_y[i], object_w[i], object_h[i]))
+                {
+                    is_jumping = 0;
+                    is_super_jumping = 0;
+                    is_sliding = 0;
+                    is_dying = 1;
+                    scene_scroll_velocity = 0;
+                }
+            }
         }
 
-        if(is_dying == 1){
+        if (is_dying == 1)
+        {
             is_dying_counter++;
-            if(is_dying_counter == 9){
+            if (is_dying_counter == 9)
+            {
                 game_running = 0;
                 scene_scroll_velocity = 50.0f;
                 is_dying = 0;
                 is_dying_counter = 0;
-                box_active = 0;
+                for (int i = 0; i < MAX_OBJECT; i++)
+                {
+                    object_active[i] = 0;
+                }
                 runner.y = runner_y_initial;
             }
         }
-        
     }
 }
 
@@ -321,28 +386,28 @@ void iDraw()
 
         if (game_running == 0 && is_dying == 0)
         {
-            int box_w = 350, box_h = 50;
+            int object1_w = 350, object1_h = 50;
             iSetTransparentColor(20, 20, 20, 0.45);
             iFilledRectangle(0, 0, SCRN_WIDTH, SCRN_HEIGHT);
 
-            int box_x = (SCRN_WIDTH - box_w) / 2;
-            int box_y = (SCRN_HEIGHT - box_h) / 2 + 60;
+            int object1_x = (SCRN_WIDTH - object1_w) / 2;
+            int object1_y = (SCRN_HEIGHT - object1_h) / 2 + 60;
             // Draw label
             char *label = "Input Username";
             float label_scale = 0.13f;
             float label_width = get_text_width(label, label_scale, GLUT_STROKE_MONO_ROMAN);
             iSetColor(255, 255, 255);
-            iTextAdvanced(box_x + (box_w - label_width) / 2, box_y + box_h + 18, label, label_scale, 1, GLUT_STROKE_MONO_ROMAN);
+            iTextAdvanced(object1_x + (object1_w - label_width) / 2, object1_y + object1_h + 18, label, label_scale, 1, GLUT_STROKE_MONO_ROMAN);
             // Draw textbox
-            iRectangle(box_x, box_y, box_w, box_h);
+            iRectangle(object1_x, object1_y, object1_w, object1_h);
             float scale = 0.18f;
             float text_width = get_text_width(username, scale, GLUT_STROKE_MONO_ROMAN);
-            iTextAdvanced(box_x + (box_w - text_width) / 2, box_y + 13, username, scale, 1, GLUT_STROKE_MONO_ROMAN);
+            iTextAdvanced(object1_x + (object1_w - text_width) / 2, object1_y + 13, username, scale, 1, GLUT_STROKE_MONO_ROMAN);
             // Draw caret
             if (caret_visible && strlen(username) < 18)
             {
-                float caret_x = box_x + (box_w - text_width) / 2 + text_width + 2;
-                int caret_y = box_y + 10;
+                float caret_x = object1_x + (object1_w - text_width) / 2 + text_width + 2;
+                int caret_y = object1_y + 10;
                 iSetColor(255, 255, 255);
                 iLine(caret_x, caret_y, caret_x, caret_y + 28);
             }
@@ -350,7 +415,7 @@ void iDraw()
             // Draw the Start button
             int start_btn_w = 180, start_btn_h = 40;
             int start_btn_x = (SCRN_WIDTH - start_btn_w) / 2;
-            int start_btn_y = box_y - 70;
+            int start_btn_y = object1_y - 70;
             if (start_btn_highlight)
                 iSetTransparentColor(2, 168, 77, 0.4);
             else
@@ -369,9 +434,23 @@ void iDraw()
         {
             iShowSprite(&runner);
             // Draw box
-            if (box_active)
+            for (int i = 0; i < MAX_OBJECT; i++)
             {
-                iShowLoadedImage(box_x, box_y, &box_img);
+                if (object_active[i])
+                {
+                    if (object_idx[i] == 0)
+                    {
+                        iShowLoadedImage(object_x[i], object_y[i], &box_img);
+                    }
+                    else if (object_idx[i] == 1)
+                    {
+                        iShowLoadedImage(object_x[i], object_y[i], &pillar_img);
+                    }
+                    else if (object_idx[i] == 2)
+                    {
+                        iShowLoadedImage(object_x[i], object_y[i], &stone_img);
+                    }
+                }
             }
         }
     }
@@ -575,11 +654,11 @@ void iMouseMove(int mx, int my)
     {
         if (game_running == 0)
         {
-            int box_h = 50;
-            int box_y = (SCRN_HEIGHT - box_h) / 2 + 60;
+            int object1_h = 50;
+            int object1_y = (SCRN_HEIGHT - object1_h) / 2 + 60;
             int start_btn_w = 180, start_btn_h = 40;
             int start_btn_x = (SCRN_WIDTH - start_btn_w) / 2;
-            int start_btn_y = box_y - 70;
+            int start_btn_y = object1_y - 70;
             if (strlen(username) > 0 && (mx >= start_btn_x && mx <= start_btn_x + start_btn_w) && (my >= start_btn_y && my <= start_btn_y + start_btn_h))
                 start_btn_highlight = 1;
             else
@@ -648,17 +727,17 @@ void iMouse(int button, int state, int mx, int my)
         else if (game_running == 0 && strlen(username) > 0 && currentPage == PLAY && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
         {
             // Check if start button is clicked
-            int box_h = 50;
-            int box_y = (SCRN_HEIGHT - box_h) / 2 + 60;
+            int object1_h = 50;
+            int object1_y = (SCRN_HEIGHT - object1_h) / 2 + 60;
             int start_btn_w = 180, start_btn_h = 40;
             int start_btn_x = (SCRN_WIDTH - start_btn_w) / 2;
-            int start_btn_y = box_y - 70;
+            int start_btn_y = object1_y - 70;
             if ((mx >= start_btn_x && mx <= start_btn_x + start_btn_w) && (my >= start_btn_y && my <= start_btn_y + start_btn_h))
             {
                 game_running = 1;
                 iSetSpritePosition(&runner, sprite_x, sprite_y);
-                iChangeSpriteFrames(&runner, movement_frames, 4*10);
-                iSetSpritePosition(&runner, SCRN_WIDTH / 2 - 70, runner_y_initial);
+                iChangeSpriteFrames(&runner, movement_frames, 4 * 10);
+                iSetSpritePosition(&runner, SCRN_WIDTH / 2 - 300, runner_y_initial);
                 iShowSprite(&runner);
             }
         }
@@ -739,7 +818,7 @@ void iKeyboard(unsigned char key)
             {
                 currentPage = GAME_PAUSED;
             }
-            if (!is_jumping && !is_super_jumping && !is_sliding)
+            if (!is_jumping && !is_super_jumping && !is_sliding && !is_dying)
             {
 
                 if (key == 'w')
