@@ -367,7 +367,7 @@ void iAnimSprites()
                 coin_x[i] -= scene_scroll_velocity;
             }
 
-            if (check_collision_with_coin(runner.x, runner.y, runner_w, runner_h, coin_x[i], coin_y[i], coin_w, coin_h))
+            if (coin_active[i] && check_collision_with_coin(runner.x, runner.y, runner_w, runner_h, coin_x[i], coin_y[i], coin_w, coin_h))
             {
                 coin_active[i] = 0;
                 coin_collided[i] = 1;
