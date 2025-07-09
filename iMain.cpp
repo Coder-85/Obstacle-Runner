@@ -109,6 +109,11 @@ Image box_img;
 Image pillar_img;
 Image stone_img;
 
+// Objects Sprite
+Sprite box;
+Sprite stone;
+Sprite pillar;
+
 int get_random_object1_x()
 {
     return 900 + rand() % 200; // random x between 900 and 1100
@@ -194,6 +199,28 @@ void initialize_sprites()
     iSetSpritePosition(&runner, sprite_x, sprite_y);
     iScaleSprite(&runner, 0.23f);
     iChangeSpriteFrames(&runner, idle_frames, 10);
+    
+    iInitSprite(&box, -1);
+    iSetSpritePosition(&box, sprite_x, sprite_y);
+    iScaleSprite(&box, 1.5f);
+    iChangeSpriteFrames(&box, &box_img, 1);
+    
+    iInitSprite(&stone, -1);
+    iSetSpritePosition(&stone, sprite_x, sprite_y);
+    iScaleSprite(&stone, 1.5f);
+    iChangeSpriteFrames(&stone, &stone_img, 1);
+
+    iInitSprite(&pillar, -1);
+    iSetSpritePosition(&pillar, sprite_x, sprite_y);
+    iScaleSprite(&pillar, 1.6f);
+    iChangeSpriteFrames(&pillar, &pillar_img, 1);
+
+    box.x = 0;
+    box.y = 0;
+    stone.x = 0;
+    stone.y = 0;
+    pillar.x = 0;
+    pillar.y = 0;
 }
 
 void load_images()
@@ -204,11 +231,9 @@ void load_images()
     iLoadImage(&game_score_img, "assets/img/objects/medal/score.png");
     iScaleImage(&game_score_img, 0.07);
     iLoadImage(&box_img, "assets/img/objects/killer/box.png");
-    iScaleImage(&box_img, 1.5f);
     iLoadImage(&stone_img, "assets/img/objects/killer/stone.png");
-    iScaleImage(&stone_img, 1.6f);
     iLoadImage(&pillar_img, "assets/img/objects/killer/pillar.png");
-    iScaleImage(&pillar_img, 1.5f);
+
     for (int i = 0; i < 3; i++)
     {
         char bg_path[50];
@@ -330,6 +355,19 @@ void iAnimSprites()
             {
                 object_x[i] -= scene_scroll_velocity;
             }
+
+            if (object_idx[i] == 0)
+            {
+                iSetSpritePosition(&box, object_x[i], object_y[i]);
+            }
+            else if (object_idx[i] == 1)
+            {
+                iSetSpritePosition(&pillar, object_x[i], object_y[i]);
+            }
+            else if (object_idx[i] == 2)
+            {
+                iSetSpritePosition(&stone, object_x[i], object_y[i]);
+            }
         }
 
         // Check collision with runner
@@ -380,29 +418,28 @@ void iAnimSprites()
             }
         }
 
-        for (int i = 0; i < MAX_OBJECT; i++)
+        if (currentPage == PLAY && game_running)
         {
-            if (object_idx[i] != 2)
+            bool cond = false;
+            for (int i = 0; i < MAX_OBJECT; i++)
             {
-                if (check_collision_jumping(runner.x, runner.y, runner_w, runner_h, object_x[i], object_y[i], object_w[i], object_h[i]))
+                if (object_active[i])
                 {
-                    is_jumping = 0;
-                    is_super_jumping = 0;
-                    is_sliding = 0;
-                    is_dying = 1;
-                    scene_scroll_velocity = 0;
+                    if (object_idx[i] == 0)
+                        cond = cond || iCheckCollision(&runner, &box);
+                    if (object_idx[i] == 1)
+                        cond = cond || iCheckCollision(&runner, &pillar);
+                    if (object_idx[i] == 2)
+                        cond = cond || iCheckCollision(&runner, &stone);
                 }
             }
-            else
+            if (cond)
             {
-                if (check_collision_sliding(runner.x, runner.y, runner_w, runner_h, object_x[i], object_y[i], object_w[i], object_h[i]))
-                {
-                    is_jumping = 0;
-                    is_super_jumping = 0;
-                    is_sliding = 0;
-                    is_dying = 1;
-                    scene_scroll_velocity = 0;
-                }
+                is_jumping = 0;
+                is_super_jumping = 0;
+                is_sliding = 0;
+                is_dying = 1;
+                scene_scroll_velocity = 0;
             }
         }
 
@@ -535,6 +572,7 @@ void iDraw()
         {
             if (!is_game_over)
                 iShowSprite(&runner);
+
             iPauseSound(sound_bg_chnl);
             // Draw objects
             for (int i = 0; i < MAX_OBJECT; i++)
@@ -543,15 +581,19 @@ void iDraw()
                 {
                     if (object_idx[i] == 0)
                     {
-                        iShowLoadedImage(object_x[i], object_y[i], &box_img);
+                        iSetSpritePosition(&box, object_x[i], object_y[i]);
+                        iShowSprite(&box);
                     }
                     else if (object_idx[i] == 1)
                     {
-                        iShowLoadedImage(object_x[i], object_y[i], &pillar_img);
+                        iSetSpritePosition(&pillar, object_x[i], object_y[i]);
+                        iShowSprite(&pillar);
                     }
                     else if (object_idx[i] == 2)
                     {
-                        iShowLoadedImage(object_x[i], object_y[i], &stone_img);
+                        iSetSpritePosition(&stone, object_x[i], object_y[i]);
+                        iShowSprite(&stone);
+
                     }
                 }
             }
@@ -1174,8 +1216,8 @@ int main(int argc, char *argv[])
     srand(time(0));
     glutInit(&argc, argv);
     // place your own initialization codes here.
-    initialize_sprites();
     load_images();
+    initialize_sprites();
     iSetTimer(50, iAnimSprites);
     iSetTimer(100, iAnimCaret); // Add caret animation timer
 
