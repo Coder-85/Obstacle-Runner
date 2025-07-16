@@ -11,7 +11,7 @@
 #define SLIDE_FRAME_OFFSET 20
 #define DEAD_FRAME_OFFSET 30
 #define MAX_OBJECT 2
-#define MAX_COIN 3
+#define MAX_COIN 4
 
 enum page_status
 {
@@ -129,7 +129,7 @@ int check_collision_sliding(int x1, int y1, int w1, int h1, int x2, int y2, int 
 
 int check_collision_with_coin(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)
 {
-    return (x1 + w1 >= x2 - w2 / 2 && y1 - h1 / 2 <= y2 + h2 / 2 && x1 - w1 / 2 <= x2 + w2 / 2);
+    return (y1 <= y2 + h2 && x1 + w1 >= x2 && y2 <= y1 + h1 && x2 + w2 >= x1);
 }
 
 inline int get_home_option_y(int idx)
@@ -197,7 +197,7 @@ void initialize_sprites()
     iSetSpritePosition(&runner, sprite_x, sprite_y);
     iScaleSprite(&runner, 0.23f);
     iChangeSpriteFrames(&runner, idle_frames, 10);
-    for (int i = 0; i < MAX_OBJECT; i++) 
+    for (int i = 0; i < MAX_OBJECT; i++)
     {
         iInitSprite(&objects[i], -1);
     }
@@ -389,18 +389,27 @@ void iAnimSprites()
                 }
                 else
                 {
-                    coin_active[i] = 1;
+
                     int on_top = rand() % 2;
-                    if (i == 0 && on_top)
+                    if (i == MAX_COIN - 1 && on_top && object_x[0] > 1000)
                     {
+                        coin_active[i] = 1;
                         int obj_idx = 0;
                         coin_x[i] = object_x[obj_idx] + (object_w[obj_idx] / 2) - (coin_w / 2);
                         coin_y[i] = object_y[obj_idx] + object_h[obj_idx] + 20; // 20 pixels above the object
                     }
-                    else
+                    else if (i != MAX_COIN - 1)
                     {
+                        coin_active[i] = 1;
                         coin_y[i] = runner_y_initial;
                         coin_x[i] = object_x[1] + rand() % (600 - 100 + 1) + 100;
+                        if (i >= 1)
+                        {
+                            while (abs(coin_x[i] - coin_x[i - 1]) <= 70)
+                            {
+                                coin_x[i] = object_x[1] + rand() % (600 - 100 + 1) + 100;
+                            }
+                        }
                     }
                     coin_collided[i] = 0;
                 }
@@ -847,14 +856,14 @@ void iDraw()
 
             if (i == 0)
             {
-                iSetColor(0, 0, 0);
+                iSetColor(255, 255, 255);
                 iTextAdvanced(515, 518 - multiplier * i - 50, "* Press ESC button from anywhere to go back", 0.12, 1.0, GLUT_STROKE_ROMAN);
                 iTextAdvanced(515, 518 - multiplier * i - 80, "* Press B/b button from anywhere to turn off", 0.12, 1.0, GLUT_STROKE_ROMAN);
                 iTextAdvanced(515, 518 - multiplier * i - 100, "  Sound", 0.12, 1.0, GLUT_STROKE_ROMAN);
             }
             else if (i == 1)
             {
-                iSetColor(0, 0, 0);
+                iSetColor(255, 255, 255);
                 iTextAdvanced(515, 518 - multiplier * i - 50, " W: For Jump", 0.12, 1.0, GLUT_STROKE_ROMAN);
                 iTextAdvanced(515, 518 - multiplier * i - 80, " S: For Slide", 0.12, 1.0, GLUT_STROKE_ROMAN);
                 iTextAdvanced(515, 518 - multiplier * i - 110, " D: For High Jump", 0.12, 1.0, GLUT_STROKE_ROMAN);
@@ -864,11 +873,11 @@ void iDraw()
             }
             else if (i == 2)
             {
-                iSetColor(0, 0, 0);
+                iSetColor(255, 255, 255);
                 iTextAdvanced(515, 518 - multiplier * i - 50, " Under the supervision of Abdur Rafi Sir,", 0.12, 1.0, GLUT_STROKE_ROMAN);
                 iSetColor(255, 255, 255);
                 iTextAdvanced(515 + get_text_width(" Under the supervision of", 0.12, GLUT_STROKE_ROMAN), 518 - multiplier * i - 50, " Abdur Rafi Sir,", 0.12, 1.0, GLUT_STROKE_ROMAN);
-                iSetColor(0, 0, 0);
+                iSetColor(255, 255, 255);
                 iTextAdvanced(515, 518 - multiplier * i - 80, " This game was developed by", 0.12, 1.0, GLUT_STROKE_ROMAN);
                 iSetColor(255, 255, 255);
                 iTextAdvanced(515, 518 - multiplier * i - 110, " Shabit Zaman (2405013) & Sifat Al Islam (2405014)", 0.11, 1.0, GLUT_STROKE_ROMAN);
