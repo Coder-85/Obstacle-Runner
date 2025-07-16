@@ -29,6 +29,7 @@ enum page_status
 int is_sound_on = 1;
 int sound_bg_chnl;
 int running_sound;
+int running_sound_active = 0;
 
 enum page_status currentPage; // To track which page is being visited currently
 Image level_bg_img[3];        // Background image for the level
@@ -280,7 +281,11 @@ void iAnimateObjectSprites()
 void iAnimSprites()
 {
     if (is_paused || is_game_over)
+    {
+        iPauseSound(running_sound);
+        running_sound_active = 0;
         return;
+    }
 
     iAnimateSpriteWithOffset(&runner);
     if (currentPage == PLAY && game_running)
@@ -302,6 +307,8 @@ void iAnimSprites()
             runner.currentFrame = 0;
         }
         iSetSpritePosition(&runner, runner.x, y);
+        iPauseSound(running_sound);
+        running_sound_active = 0;
     }
 
     if (currentPage == PLAY && is_super_jumping && game_running)
@@ -316,6 +323,8 @@ void iAnimSprites()
             runner.currentFrame = 0;
         }
         iSetSpritePosition(&runner, runner.x, y);
+        iPauseSound(running_sound);
+        running_sound_active = 0;
     }
 
     if (currentPage == PLAY && is_sliding && game_running)
@@ -328,6 +337,8 @@ void iAnimSprites()
             runner.currentFrame = 0;
         }
         iSetSpritePosition(&runner, runner.x, runner.y);
+        iPauseSound(running_sound);
+        running_sound_active = 0;
     }
 
     if (currentPage == PLAY && game_running)
@@ -455,6 +466,7 @@ void iAnimSprites()
 
         if (is_dying == 1)
         {
+            iPauseSound(running_sound);
             is_dying_counter++;
             if (is_dying_counter == 8)
             {
@@ -521,6 +533,7 @@ void iDraw()
         {
             draw_home_page_button(i, home_option_color[i], home_option_labels[i]);
         }
+        iPauseSound(running_sound);
     }
     else if (currentPage == PLAY)
     {
@@ -616,6 +629,11 @@ void iDraw()
                 char in_game_score_str[10];
                 sprintf(in_game_score_str, "%d", in_game_score);
                 iTextAdvanced(875 + 40, 545, in_game_score_str, 0.1, 1, GLUT_STROKE_MONO_ROMAN); // for score
+                if (running_sound_active == 0 && !is_jumping && !is_super_jumping && !is_sliding)
+                {
+                    iResumeSound(running_sound);
+                    running_sound_active = 1;
+                }
             }
         }
 
@@ -1046,11 +1064,25 @@ void iMouse(int button, int state, int mx, int my)
             {
                 currentPage = HOME;
                 game_running = 0;
+                iResumeSound(sound_bg_chnl);
                 iSetSpritePosition(&runner, sprite_x, sprite_y);
                 iChangeSpriteFrames(&runner, idle_frames, 10);
                 is_paused = 0;
                 in_game_score = 0;
                 in_game_earned_coin = 0;
+                is_jumping = 0;
+                is_super_jumping = 0;
+                is_sliding = 0;
+
+                for (int i = 0; i < MAX_OBJECT; i++)
+                {
+                    object_active[i] = object_idx[i] = object_x[i] = object_w[i] = object_h[i] = 0;
+                }
+
+                for (int i = 0; i < MAX_COIN; i++)
+                {
+                    coin_active[i] = coin_collided[i] = coin_x[i] = coin_y[i] = 0;
+                }
                 memset(coin_x, 0, sizeof(coin_x));
                 memset(coin_y, 0, sizeof(coin_y));
             }
@@ -1074,6 +1106,7 @@ void iMouse(int button, int state, int mx, int my)
             {
                 currentPage = HOME;
                 game_running = 0;
+                iResumeSound(sound_bg_chnl);
                 iSetSpritePosition(&runner, sprite_x, sprite_y);
                 iChangeSpriteFrames(&runner, idle_frames, 10);
                 is_game_over = 0;
@@ -1219,6 +1252,7 @@ int main(int argc, char *argv[])
     // initialize sounds
     iInitializeSound();
     sound_bg_chnl = iPlaySound("assets/sound/bg.wav", true, 50);
+    running_sound = iPlaySound("assets/sound/running.wav", true, 50);
     iInitialize(SCRN_WIDTH, SCRN_HEIGHT, "Obstacle Runner");
     return 0;
 }
