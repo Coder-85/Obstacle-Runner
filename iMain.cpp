@@ -70,6 +70,7 @@ int gameover_btn_highlight[2];
 // Username input string
 char username[18] = "";
 int start_btn_highlight = 0;
+int is_typing_username = 0;
 
 // Caret state for username input
 int caret_visible = 1;
@@ -282,8 +283,11 @@ void iAnimSprites()
 {
     if (is_paused || is_game_over)
     {
-        iPauseSound(running_sound);
-        running_sound_active = 0;
+        if (is_sound_on)
+        {
+            iPauseSound(running_sound);
+            running_sound_active = 0;
+        }
         return;
     }
 
@@ -307,8 +311,6 @@ void iAnimSprites()
             runner.currentFrame = 0;
         }
         iSetSpritePosition(&runner, runner.x, y);
-        iPauseSound(running_sound);
-        running_sound_active = 0;
     }
 
     if (currentPage == PLAY && is_super_jumping && game_running)
@@ -323,8 +325,6 @@ void iAnimSprites()
             runner.currentFrame = 0;
         }
         iSetSpritePosition(&runner, runner.x, y);
-        iPauseSound(running_sound);
-        running_sound_active = 0;
     }
 
     if (currentPage == PLAY && is_sliding && game_running)
@@ -337,6 +337,10 @@ void iAnimSprites()
             runner.currentFrame = 0;
         }
         iSetSpritePosition(&runner, runner.x, runner.y);
+    }
+
+    if (currentPage == PLAY && game_running && (is_sliding || is_jumping || is_super_jumping))
+    {
         iPauseSound(running_sound);
         running_sound_active = 0;
     }
@@ -629,7 +633,7 @@ void iDraw()
                 char in_game_score_str[10];
                 sprintf(in_game_score_str, "%d", in_game_score);
                 iTextAdvanced(875 + 40, 545, in_game_score_str, 0.1, 1, GLUT_STROKE_MONO_ROMAN); // for score
-                if (running_sound_active == 0 && !is_jumping && !is_super_jumping && !is_sliding)
+                if (running_sound_active == 0 && !is_jumping && !is_super_jumping && !is_sliding && is_sound_on)
                 {
                     iResumeSound(running_sound);
                     running_sound_active = 1;
@@ -991,6 +995,7 @@ void iMouse(int button, int state, int mx, int my)
                     {
                     case 1:
                         currentPage = PLAY;
+                        is_typing_username = 1;
                         break;
 
                     case 2:
@@ -1028,6 +1033,7 @@ void iMouse(int button, int state, int mx, int my)
             if ((mx >= start_btn_x && mx <= start_btn_x + start_btn_w) && (my >= start_btn_y && my <= start_btn_y + start_btn_h))
             {
                 game_running = 1;
+                is_typing_username = 0;
                 iSetSpritePosition(&runner, sprite_x, sprite_y);
                 iChangeSpriteFrames(&runner, movement_frames, 4 * 10);
                 iSetSpritePosition(&runner, SCRN_WIDTH / 2 - 300, runner_y_initial);
@@ -1064,7 +1070,10 @@ void iMouse(int button, int state, int mx, int my)
             {
                 currentPage = HOME;
                 game_running = 0;
-                iResumeSound(sound_bg_chnl);
+                if (is_sound_on)
+                {
+                    iResumeSound(sound_bg_chnl);
+                }
                 iSetSpritePosition(&runner, sprite_x, sprite_y);
                 iChangeSpriteFrames(&runner, idle_frames, 10);
                 is_paused = 0;
@@ -1106,7 +1115,10 @@ void iMouse(int button, int state, int mx, int my)
             {
                 currentPage = HOME;
                 game_running = 0;
-                iResumeSound(sound_bg_chnl);
+                if (is_sound_on)
+                {
+                    iResumeSound(sound_bg_chnl);
+                }
                 iSetSpritePosition(&runner, sprite_x, sprite_y);
                 iChangeSpriteFrames(&runner, idle_frames, 10);
                 is_game_over = 0;
@@ -1201,17 +1213,21 @@ void iKeyboard(unsigned char key)
         }
     }
 
-    if (key == 'B' || key == 'b')
+    if ((key == 'B' || key == 'b') && (!is_typing_username))
     {
         if (is_sound_on == 1)
         {
             iPauseSound(sound_bg_chnl);
             is_sound_on = 0;
+            iPauseSound(running_sound);
+            running_sound_active = 0;
         }
         else
         {
             iResumeSound(sound_bg_chnl);
             is_sound_on = 1;
+            iResumeSound(running_sound);
+            running_sound_active = 1;
         }
     }
 }
