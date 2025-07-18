@@ -37,6 +37,13 @@ int total_coin = 0;
 struct leaderboard leaderboard[LEADERBOARD_SIZE];
 int read_save_files;
 
+// scene page modal variable
+int is_modal_showing = 0;
+int scene_idx_for_modal = -1;
+int modal_btn_highlight = 0;
+int can_be_unlocked = 0;
+int coin_required_to_unlock = 0;
+
 // Sound Variables
 int is_sound_on = 1;
 int sound_bg_chnl;
@@ -65,7 +72,7 @@ int sprite_x = 192;
 int sprite_y = 173;
 
 // Game variables
-int unlock_status[3] = {1, 1, 0};
+int unlock_status[3] = {1, 0, 0};
 int selected_status[3] = {1, 0, 0};
 int game_running = 0;
 int is_dying = 0;
@@ -662,6 +669,72 @@ void iAnimCaret()
     }
 }
 
+// show the modal of the scene page
+void draw_scene_page_modal(char name[], int required_coin, int scene_idx)
+{
+    iClear();
+    // Load Bg Img
+    iShowImage(0, 0, "assets/img/bg/scene_bg_001.jpeg");
+    // Space for coins
+    char message1[200];
+    char message2[200];
+    char modal_label[50];
+    iSetTransparentColor(20, 20, 20, 0.8);
+    if (required_coin > total_coin)
+    {
+        strcpy(message1, "You don\'t have enough coin to unlock the scene.");
+        strcpy(message2, "Play more & collect coins to unlock this exciting Scene!");
+        strcpy(modal_label, "Ok");
+        can_be_unlocked = 0;
+    }
+    else
+    {
+        strcpy(message1, "Yes!! You have earned enough coin to Unlock this scene.");
+        strcpy(message2, "Press the unlock button below to unlock it.");
+        strcpy(modal_label, "Unlock");
+        can_be_unlocked = 1;
+    }
+
+    iFilledRectangle(0, 0, 1000, 600);
+    iSetTransparentColor(20, 20, 20, 0.8);
+    iFilledRectangle(0, 420, 1000, 110);
+    iSetColor(255, 255, 255);
+    int text_size = get_text_width(name, 0.25, GLUT_STROKE_ROMAN);
+    iTextAdvanced((1000 - text_size) / 2, 490, name, 0.25, 1.0, GLUT_STROKE_ROMAN);
+
+    char coin_req[50];
+    sprintf(coin_req, "Coin Required: %d", required_coin);
+    text_size = get_text_width(coin_req, 0.18, GLUT_STROKE_ROMAN);
+    iSetColor(255, 255, 255);
+    iTextAdvanced((1000 - text_size) / 2, 440, coin_req, 0.18, 1.0, GLUT_STROKE_ROMAN);
+
+    iSetTransparentColor(20, 20, 20, 0.8);
+    iFilledRectangle(0, 270, 1000, 70);
+    iSetColor(255, 255, 255);
+    text_size = get_text_width(message1, 0.15, GLUT_STROKE_ROMAN);
+    iTextAdvanced((1000 - text_size) / 2, 310, message1, 0.15, 1.0, GLUT_STROKE_ROMAN);
+    text_size = get_text_width(message2, 0.15, GLUT_STROKE_ROMAN);
+    iTextAdvanced((1000 - text_size) / 2, 280, message2, 0.15, 1.0, GLUT_STROKE_ROMAN);
+
+    int modal_btn_w = 220, modal_btn_h = 50;
+    int modal_btn_x = (SCRN_WIDTH - modal_btn_w) / 2;
+    int modal_btn_y = 50;
+    if (modal_btn_highlight)
+        iSetTransparentColor(2, 168, 77, 0.4);
+    else
+        iSetColor(255, 255, 255);
+    if (modal_btn_highlight)
+        iFilledRectangle(modal_btn_x, modal_btn_y, modal_btn_w, modal_btn_h);
+    else
+        iRectangle(modal_btn_x, modal_btn_y, modal_btn_w, modal_btn_h);
+
+    float modal_text_width = get_text_width(modal_label, 0.2, GLUT_STROKE_MONO_ROMAN);
+    iSetColor(255, 255, 255);
+    iTextAdvanced(modal_btn_x + (modal_btn_w - modal_text_width) / 2, modal_btn_y + 15, modal_label, 0.2, 1, GLUT_STROKE_MONO_ROMAN);
+    // draw_home_page_button()
+    loadCoinData();
+}
+
 /*
 function iDraw() is called again and again by the system.
 */
@@ -936,6 +1009,11 @@ void iDraw()
                 iShowImage(55 * (i + 1) + 260 * i + 97.5, 207 + 52, "assets/img/scenes/lock.png");
             }
         }
+
+        if (is_modal_showing == 1)
+        {
+            draw_scene_page_modal(scene_name[scene_idx_for_modal], coin_required_to_unlock, scene_idx_for_modal);
+        }
     }
     else if (currentPage == LEADERBOARD)
     {
@@ -1090,6 +1168,13 @@ void iMouseMove(int mx, int my)
                 start_btn_highlight = 0;
         }
     }
+    else if (currentPage == SCENES && is_modal_showing == 1)
+    {
+        int btn_w = 220, btn_h = 50;
+        int btn_x = (SCRN_WIDTH - btn_w) / 2;
+        int btn_y = 50;
+        modal_btn_highlight = (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y && my <= btn_y + btn_h);
+    }
     if (is_paused == 1)
     {
         int btn_w = 250, btn_h = 50;
@@ -1189,6 +1274,7 @@ void iMouse(int button, int state, int mx, int my)
                                 fclose(fp);
                             }
                         }
+
                         break;
 
                     case 3:
@@ -1240,11 +1326,34 @@ void iMouse(int button, int state, int mx, int my)
                 int x2 = x1 + 260;
                 int y1 = 207;
                 int y2 = y1 + 192;
-                if ((mx >= x1 && mx <= x2) && (my >= y1 && my <= y2) && unlock_status[i] == 1)
+                if ((mx >= x1 && mx <= x2) && (my >= y1 && my <= y2) && unlock_status[i] == 1 && !is_modal_showing)
                 {
                     memset(selected_status, 0, sizeof(selected_status));
                     selected_status[i] = 1;
                 }
+                else if ((mx >= x1 && mx <= x2) && (my >= y1 && my <= y2) && unlock_status[i] == 0)
+                {
+                    scene_idx_for_modal = i;
+                    is_modal_showing = 1;
+                    if(i==1){
+                        coin_required_to_unlock = 100;
+                    }else if(i==2){
+                        coin_required_to_unlock = 200;
+                    }
+                }
+            }
+            int btn_w = 220, btn_h = 50;
+            int btn_x = (SCRN_WIDTH - btn_w) / 2;
+            int btn_y = 50;
+            if (is_modal_showing && (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y && my <= btn_y + btn_h) && !can_be_unlocked)
+            {
+                is_modal_showing = 0;
+                can_be_unlocked = 0;
+            }
+            else if (is_modal_showing && (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y && my <= btn_y + btn_h) && can_be_unlocked)
+            {
+                is_modal_showing = 0;
+                can_be_unlocked = 0;
             }
         }
         else if (currentPage == PLAY && is_paused == 1 && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
@@ -1349,6 +1458,7 @@ void iKeyboard(unsigned char key)
         {
             iSetSpritePosition(&runner, sprite_x, sprite_y);
             currentPage = HOME;
+            is_modal_showing = 0;
         }
         break;
     // place your codes for other keys here
