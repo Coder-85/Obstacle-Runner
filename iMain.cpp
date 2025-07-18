@@ -601,7 +601,7 @@ void iAnimSprites()
                         leaderboard[i].score = in_game_score;
                         break;
                     }
-                    
+
                     if (strcmp(leaderboard[i].username, username) == 0 && leaderboard[i].score == in_game_score)
                         break;
 
@@ -696,9 +696,12 @@ void draw_scene_page_modal(char name[], int required_coin, int scene_idx)
     }
 
     iFilledRectangle(0, 0, 1000, 600);
-    if(can_be_unlocked){
+    if (can_be_unlocked)
+    {
         iSetTransparentColor(2, 168, 77, 0.4);
-    }else{
+    }
+    else
+    {
         iSetTransparentColor(168, 2, 2, 0.4);
     }
     iFilledRectangle(0, 220, 1000, 220);
@@ -712,7 +715,6 @@ void draw_scene_page_modal(char name[], int required_coin, int scene_idx)
     iSetColor(255, 255, 255);
     iTextAdvanced((1000 - text_size) / 2, 360, coin_req, 0.18, 1.0, GLUT_STROKE_ROMAN);
 
-    
     iSetColor(255, 255, 255);
     text_size = get_text_width(message1, 0.15, GLUT_STROKE_ROMAN);
     iTextAdvanced((1000 - text_size) / 2, 270, message1, 0.15, 1.0, GLUT_STROKE_ROMAN);
@@ -1354,9 +1356,12 @@ void iMouse(int button, int state, int mx, int my)
                 {
                     scene_idx_for_modal = i;
                     is_modal_showing = 1;
-                    if(i==1){
+                    if (i == 1)
+                    {
                         coin_required_to_unlock = 50;
-                    }else if(i==2){
+                    }
+                    else if (i == 2)
+                    {
                         coin_required_to_unlock = 100;
                     }
                 }
