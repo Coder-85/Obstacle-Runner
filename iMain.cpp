@@ -139,8 +139,10 @@ void save_game()
         fprintf(stderr, "Failed to open game state file for writing.\n");
         exit(-1);
     }
-    // First line with two integers, in_game_score and in_game_earned_coin and username
-    fprintf(fp, "%d %d %s\n", in_game_score, in_game_earned_coin, username);
+    // First line with two integers, in_game_score and in_game_earned_coin
+    fprintf(fp, "%d %d\n", in_game_score, in_game_earned_coin);
+    // Next line containing the username
+    fprintf(fp, "%s\n", username);
     // Next MAX_OBJECTS line with object_active, object_idx, object_x, object_y, object_w, object_h
     for (int i = 0; i < MAX_OBJECT; i++)
     {
@@ -151,6 +153,8 @@ void save_game()
     {
         fprintf(fp, "%d %d %d %d\n", coin_active[i], coin_collided[i], coin_x[i], coin_y[i]);
     }
+    // Next line with jump_time, is_jumping, is_super_jumping, is_sliding
+    fprintf(fp, "%f %d %d %d\n", jump_time, is_jumping, is_super_jumping, is_sliding);
     fclose(fp);
 }
 
@@ -172,9 +176,9 @@ void close_callback()
     }
     fclose(fp);
 
-    if (game_running && !is_game_over)
+    if (game_running && !is_game_over && !is_dying)
     {
-        save_game();   
+        save_game();
     }
 }
 
@@ -193,7 +197,6 @@ void load_game_data()
     }
 
     fscanf(fp, "%d", &total_coin);
-    printf("Total Coins: %d\n", total_coin);
     for (int i = 0; i < LEADERBOARD_SIZE; i++)
     {
         fscanf(fp, "%s %d", leaderboard[i].username, &leaderboard[i].score);
@@ -208,7 +211,7 @@ void load_game_data()
         return;
     }
 
-    fscanf(fp, "%d %d %s", &in_game_score, &in_game_earned_coin, username);
+    fscanf(fp, "%d %d", &in_game_score, &in_game_earned_coin);
     if (in_game_score <= 0)
     {
         read_save_files = 0;
@@ -216,17 +219,16 @@ void load_game_data()
         return;
     }
     read_save_files = 1;
-    printf("In-game Score: %d, Earned Coins: %d, Username: %s\n", in_game_score, in_game_earned_coin, username);
+    fscanf(fp, "%s", username);
     for (int i = 0; i < MAX_OBJECT; i++)
     {
         fscanf(fp, "%d %d %d %d %d %d", &object_active[i], &object_idx[i], &object_x[i], &object_y[i], &object_w[i], &object_h[i]);
-        printf("Object %d: Active: %d, Index: %d, X: %d, Y: %d, W: %d, H: %d\n", i, object_active[i], object_idx[i], object_x[i], object_y[i], object_w[i], object_h[i]);
     }
     for (int i = 0; i < MAX_COIN; i++)
     {
         fscanf(fp, "%d %d %d %d", &coin_active[i], &coin_collided[i], &coin_x[i], &coin_y[i]);
-        printf("Coin %d: Active: %d, Collided: %d, X: %d, Y: %d\n", i, coin_active[i], coin_collided[i], coin_x[i], coin_y[i]);
     }
+    fscanf(fp, "%f %d %d %d", &jump_time, &is_jumping, &is_super_jumping, &is_sliding);
     fclose(fp);
 }
 
@@ -356,7 +358,6 @@ void load_images()
     {
         char bg_path[50];
         sprintf(bg_path, "assets/img/bg/game_bg_%03d.png", i + 1);
-        printf("%s\n", bg_path);
         iLoadImage(&level_bg_img[i], bg_path);
     }
 }
@@ -366,12 +367,17 @@ void iAnimateSpriteWithOffset(Sprite *sprite)
     if (!sprite || sprite->totalFrames <= 1 || !sprite->frames)
         return;
 
-    if (is_jumping || is_super_jumping)
-        sprite->currentFrame = (sprite->currentFrame + 1) % 10 + JUMP_FRAME_OFFSET;
-    else if (is_sliding)
-        sprite->currentFrame = (sprite->currentFrame + 1) % 10 + SLIDE_FRAME_OFFSET;
-    else if (is_dying)
-        sprite->currentFrame = (sprite->currentFrame + 1) % 10 + DEAD_FRAME_OFFSET;
+    if (game_running)
+    {
+        if (is_jumping || is_super_jumping)
+            sprite->currentFrame = (sprite->currentFrame + 1) % 10 + JUMP_FRAME_OFFSET;
+        else if (is_sliding)
+            sprite->currentFrame = (sprite->currentFrame + 1) % 10 + SLIDE_FRAME_OFFSET;
+        else if (is_dying)
+            sprite->currentFrame = (sprite->currentFrame + 1) % 10 + DEAD_FRAME_OFFSET;
+        else
+            sprite->currentFrame = (sprite->currentFrame + 1) % 10;
+    }
     else
         sprite->currentFrame = (sprite->currentFrame + 1) % 10;
 
@@ -588,8 +594,21 @@ void iAnimSprites()
                         leaderboard[i].score = in_game_score;
                         break;
                     }
+                    
                     if (strcmp(leaderboard[i].username, username) == 0 && leaderboard[i].score == in_game_score)
                         break;
+
+                    if (leaderboard[i].score < in_game_score)
+                    {
+                        for (int j = LEADERBOARD_SIZE - 1; j > i; j--)
+                        {
+                            leaderboard[j] = leaderboard[j - 1];
+                        }
+                        strncpy(leaderboard[i].username, username, sizeof(leaderboard[i].username) - 1);
+                        leaderboard[i].username[sizeof(leaderboard[i].username) - 1] = '\0';
+                        leaderboard[i].score = in_game_score;
+                        break;
+                    }
                 }
 
                 qsort(leaderboard, LEADERBOARD_SIZE, sizeof(struct leaderboard), cmp);
@@ -1124,11 +1143,52 @@ void iMouse(int button, int state, int mx, int my)
                     {
                     case 1:
                         currentPage = PLAY;
+                        memset(username, 0, sizeof(username));
+                        memset(object_active, 0, sizeof(object_active));
+                        memset(object_idx, 0, sizeof(object_idx));
+                        memset(object_x, 0, sizeof(object_x));
+                        memset(object_y, 0, sizeof(object_y));
+                        memset(object_w, 0, sizeof(object_w));
+                        memset(object_h, 0, sizeof(object_h));
+                        memset(coin_x, 0, sizeof(coin_x));
+                        memset(coin_y, 0, sizeof(coin_y));
+                        memset(coin_active, 0, sizeof(coin_active));
+                        memset(coin_collided, 0, sizeof(coin_collided));
+                        in_game_score = 0;
+                        in_game_earned_coin = 0;
+                        is_jumping = 0;
+                        is_super_jumping = 0;
+                        is_sliding = 0;
                         is_typing_username = 1;
+                        if (read_save_files)
+                        {
+                            read_save_files = 0;
+                            FILE *fp = fopen("data/game_state.txt", "w");
+                            if (fp != NULL)
+                            {
+                                fclose(fp);
+                            }
+                        }
                         break;
 
                     case 2:
-                        if (read_save_files) currentPage = RESUME;
+                        if (read_save_files)
+                        {
+                            game_running = 1;
+                            currentPage = PLAY;
+                            is_typing_username = 0;
+                            iSetSpritePosition(&runner, sprite_x, runner_y_initial);
+                            iChangeSpriteFrames(&runner, movement_frames, 4 * 10);
+                            iShowSprite(&runner);
+                            initialize_object_sprites();
+                            start_btn_highlight = 0;
+                            read_save_files = 0;
+                            FILE *fp = fopen("data/game_state.txt", "w");
+                            if (fp != NULL)
+                            {
+                                fclose(fp);
+                            }
+                        }
                         break;
 
                     case 3:
@@ -1145,7 +1205,7 @@ void iMouse(int button, int state, int mx, int my)
                         break;
 
                     default:
-                        save_game();
+                        close_callback();
                         exit(0);
                         break;
                     }
