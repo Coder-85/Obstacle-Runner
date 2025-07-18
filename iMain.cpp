@@ -178,6 +178,11 @@ void close_callback()
     }
 }
 
+void resize_callback(int width, int height)
+{
+    glutReshapeWindow(SCRN_WIDTH, SCRN_HEIGHT);
+}
+
 void load_game_data()
 {
     FILE *fp = fopen("data/game_data.txt", "r+");
@@ -1396,7 +1401,6 @@ int main(int argc, char *argv[])
     iInitializeSound();
     sound_bg_chnl = iPlaySound("assets/sound/bg.wav", true, 50);
     running_sound = iPlaySound("assets/sound/running.wav", true, 50);
-    glutCloseFunc(close_callback);
     iInitialize(SCRN_WIDTH, SCRN_HEIGHT, "Obstacle Runner");
     return 0;
 }

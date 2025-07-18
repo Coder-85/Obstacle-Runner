@@ -1192,6 +1192,10 @@ void reshapeFF(int width, int height)
     glutPostRedisplay();
 }
 
+void close_callback();
+
+void resize_callback(int width, int height);
+
 void iInitialize(int width = 500, int height = 500, const char *title = "iGraphics")
 {
     iSmallScreenHeight = iScreenHeight = height;
@@ -1221,6 +1225,8 @@ void iInitialize(int width = 500, int height = 500, const char *title = "iGraphi
     glutPassiveMotionFunc(mousePassiveMoveHandlerFF);
     glutMouseWheelFunc(mouseWheelHandlerFF);
     glutIdleFunc(animFF);
+    glutReshapeFunc(resize_callback);
+    glutCloseFunc(close_callback);
     //
     // Setup Alpha channel testing.
     // If alpha value is greater than 0, then those
