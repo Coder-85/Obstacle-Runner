@@ -11,6 +11,7 @@
 #define SLIDE_FRAME_OFFSET 20
 #define DEAD_FRAME_OFFSET 30
 #define MAX_OBJECT 2
+#define LEADERBOARD_SIZE 8
 #define MAX_COIN 4
 
 enum page_status
@@ -24,6 +25,17 @@ enum page_status
     EXIT,
     GAME_PAUSED
 };
+
+struct leaderboard
+{
+    char username[18];
+    int score;
+};
+
+// Game data
+int total_coin = 0;
+struct leaderboard leaderboard[LEADERBOARD_SIZE];
+int read_save_files;
 
 // Sound Variables
 int is_sound_on = 1;
@@ -114,19 +126,108 @@ Image stone_img;
 // Objects Sprite
 Sprite objects[MAX_OBJECT];
 
+int cmp(const void *a, const void *b)
+{
+    return ((struct leaderboard *)a)->score < ((struct leaderboard *)b)->score;
+}
+
+void save_game()
+{
+    FILE *fp = fopen("data/game_state.txt", "w");
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Failed to open game state file for writing.\n");
+        exit(-1);
+    }
+    // First line with two integers, in_game_score and in_game_earned_coin and username
+    fprintf(fp, "%d %d %s\n", in_game_score, in_game_earned_coin, username);
+    // Next MAX_OBJECTS line with object_active, object_idx, object_x, object_y, object_w, object_h
+    for (int i = 0; i < MAX_OBJECT; i++)
+    {
+        fprintf(fp, "%d %d %d %d %d %d\n", object_active[i], object_idx[i], object_x[i], object_y[i], object_w[i], object_h[i]);
+    }
+    // Next MAX_COIN line with coin_active, coin_collided, coin_x, coin_y
+    for (int i = 0; i < MAX_COIN; i++)
+    {
+        fprintf(fp, "%d %d %d %d\n", coin_active[i], coin_collided[i], coin_x[i], coin_y[i]);
+    }
+    fclose(fp);
+}
+
+void close_callback()
+{
+    FILE *fp = fopen("data/game_data.txt", "w");
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Failed to open game data file for writing.\n");
+        exit(-1);
+    }
+    fprintf(fp, "%d\n", total_coin);
+    for (int i = 0; i < LEADERBOARD_SIZE; i++)
+    {
+        if (leaderboard[i].username == NULL || leaderboard[i].score <= 0)
+            continue;
+
+        fprintf(fp, "%s %d\n", leaderboard[i].username, leaderboard[i].score);
+    }
+    fclose(fp);
+
+    if (game_running && !is_game_over)
+    {
+        save_game();   
+    }
+}
+
+void load_game_data()
+{
+    FILE *fp = fopen("data/game_data.txt", "r+");
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Failed to open game data file.\n");
+        exit(-1);
+    }
+
+    fscanf(fp, "%d", &total_coin);
+    printf("Total Coins: %d\n", total_coin);
+    for (int i = 0; i < LEADERBOARD_SIZE; i++)
+    {
+        fscanf(fp, "%s %d", leaderboard[i].username, &leaderboard[i].score);
+    }
+    qsort(leaderboard, LEADERBOARD_SIZE, sizeof(struct leaderboard), cmp);
+    fclose(fp);
+
+    fp = fopen("data/game_state.txt", "r");
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Failed to open game state file.\n");
+        return;
+    }
+
+    fscanf(fp, "%d %d %s", &in_game_score, &in_game_earned_coin, username);
+    if (in_game_score <= 0)
+    {
+        read_save_files = 0;
+        fclose(fp);
+        return;
+    }
+    read_save_files = 1;
+    printf("In-game Score: %d, Earned Coins: %d, Username: %s\n", in_game_score, in_game_earned_coin, username);
+    for (int i = 0; i < MAX_OBJECT; i++)
+    {
+        fscanf(fp, "%d %d %d %d %d %d", &object_active[i], &object_idx[i], &object_x[i], &object_y[i], &object_w[i], &object_h[i]);
+        printf("Object %d: Active: %d, Index: %d, X: %d, Y: %d, W: %d, H: %d\n", i, object_active[i], object_idx[i], object_x[i], object_y[i], object_w[i], object_h[i]);
+    }
+    for (int i = 0; i < MAX_COIN; i++)
+    {
+        fscanf(fp, "%d %d %d %d", &coin_active[i], &coin_collided[i], &coin_x[i], &coin_y[i]);
+        printf("Coin %d: Active: %d, Collided: %d, X: %d, Y: %d\n", i, coin_active[i], coin_collided[i], coin_x[i], coin_y[i]);
+    }
+    fclose(fp);
+}
+
 int get_random_object1_x()
 {
     return 900 + rand() % 200; // random x between 900 and 1100
-}
-
-int check_collision_jumping(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)
-{
-    return (x1 + w1 / 2 >= x2 - w2 / 2 && y1 <= y2 + h2 && x1 - w1 / 2 <= x2 + w2 / 2);
-}
-
-int check_collision_sliding(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)
-{
-    return (x1 + w1 / 2 >= x2 - w2 / 2 && y1 + 6 * h1 / 5 >= y2 - 3 * h2 / 5 && x1 - w1 / 2 <= x2 + w2 / 2);
 }
 
 int check_collision_with_coin(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)
@@ -164,11 +265,18 @@ void draw_home_page_button(int idx, int highlight, const char *label)
     }
     else
     {
-        iSetColor(255, 255, 255);
+        if (idx == 1 && !read_save_files)
+            iSetColor(100, 100, 100);
+        else
+            iSetColor(255, 255, 255);
         iRectangle(x, y, home_option_w, home_option_h);
     }
 
-    iSetColor(255, 255, 255);
+    if (idx == 1 && !read_save_files)
+        iSetColor(100, 100, 100);
+    else
+        iSetColor(255, 255, 255);
+
     float scale = 0.15f;
     float text_width = get_text_width(label, scale, GLUT_STROKE_MONO_ROMAN);
     float text_x = x + (home_option_w - text_width) / 2.0f;
@@ -181,7 +289,8 @@ void loadCoinData()
 
     iShowLoadedImage(820, 570, &home_coin_img);
     // Print Total Coin
-    char total_coins[10] = "1000";
+    char total_coins[100];
+    sprintf(total_coins, "%d", total_coin);
     iSetColor(255, 255, 255);
     iTextAdvanced(850, 575, total_coins, 0.1, 1, GLUT_STROKE_MONO_ROMAN);
 }
@@ -465,6 +574,20 @@ void iAnimSprites()
                 is_sliding = 0;
                 is_dying = 1;
                 scene_scroll_velocity = 0;
+                for (int i = 0; i < LEADERBOARD_SIZE; i++)
+                {
+                    if (leaderboard[i].username == NULL || leaderboard[i].score <= 0)
+                    {
+                        strncpy(leaderboard[i].username, username, sizeof(leaderboard[i].username) - 1);
+                        leaderboard[i].username[sizeof(leaderboard[i].username) - 1] = '\0';
+                        leaderboard[i].score = in_game_score;
+                        break;
+                    }
+                    if (strcmp(leaderboard[i].username, username) == 0 && leaderboard[i].score == in_game_score)
+                        break;
+                }
+
+                qsort(leaderboard, LEADERBOARD_SIZE, sizeof(struct leaderboard), cmp);
             }
         }
 
@@ -486,6 +609,7 @@ void iAnimSprites()
                 memset(coin_x, 0, sizeof(coin_x));
                 memset(coin_y, 0, sizeof(coin_y));
                 is_game_over = 1;
+                total_coin += in_game_earned_coin;
             }
             if (is_dying_counter == 1)
             {
@@ -740,11 +864,6 @@ void iDraw()
         }
     }
 
-    else if (currentPage == RESUME)
-    {
-        iClear();
-        iText(50, 50, "Resume Page");
-    }
     else if (currentPage == SCENES)
     {
         iClear();
@@ -823,6 +942,8 @@ void iDraw()
 
         for (int i = 0; i < 8; i++)
         {
+            if (leaderboard[i].username == NULL || leaderboard[i].score <= 0)
+                break;
             if (i == 0)
             {
                 iShowImage((SCRN_WIDTH / 2 - text_width) + 50, 345 - 40 * i, "assets/img/objects/medal/gold.png");
@@ -842,8 +963,10 @@ void iDraw()
                 x[1] = '\0';
                 iTextAdvanced((SCRN_WIDTH / 2 - text_width) + 50, 350 - 40 * i, x, 0.12, 1, GLUT_STROKE_ROMAN);
             }
-            iTextAdvanced((SCRN_WIDTH / 2 - text_width) + 160, 350 - 40 * i, "Sifat", 0.12, 1, GLUT_STROKE_ROMAN);
-            iTextAdvanced((SCRN_WIDTH / 2 - text_width) + 440, 350 - 40 * i, "500", 0.12, 1, GLUT_STROKE_ROMAN);
+            iTextAdvanced((SCRN_WIDTH / 2 - text_width) + 160, 350 - 40 * i, leaderboard[i].username, 0.12, 1, GLUT_STROKE_ROMAN);
+            char score_str[100];
+            sprintf(score_str, "%d", leaderboard[i].score);
+            iTextAdvanced((SCRN_WIDTH / 2 - text_width) + 440, 350 - 40 * i, score_str, 0.12, 1, GLUT_STROKE_ROMAN);
         }
     }
     else if (currentPage == HELP)
@@ -923,7 +1046,7 @@ void iMouseMove(int mx, int my)
             int y1 = get_home_option_y(i);
             int y2 = y1 + home_option_h;
             if ((mx >= x1 && mx <= x2) && (my >= y1 && my <= y2))
-                home_option_color[i] = 1;
+                home_option_color[i] = i == 1 ? read_save_files ? 1 : 0 : 1;
             else
                 home_option_color[i] = 0;
         }
@@ -991,6 +1114,7 @@ void iMouse(int button, int state, int mx, int my)
                 int y2 = y1 + home_option_h;
                 if ((mx >= x1 && mx <= x2) && (my >= y1 && my <= y2))
                 {
+                    memset(home_option_color, 0, sizeof(home_option_color));
                     switch (i + 1)
                     {
                     case 1:
@@ -999,7 +1123,7 @@ void iMouse(int button, int state, int mx, int my)
                         break;
 
                     case 2:
-                        currentPage = RESUME;
+                        if (read_save_files) currentPage = RESUME;
                         break;
 
                     case 3:
@@ -1016,6 +1140,7 @@ void iMouse(int button, int state, int mx, int my)
                         break;
 
                     default:
+                        save_game();
                         exit(0);
                         break;
                     }
@@ -1038,6 +1163,7 @@ void iMouse(int button, int state, int mx, int my)
                 iChangeSpriteFrames(&runner, movement_frames, 4 * 10);
                 iSetSpritePosition(&runner, SCRN_WIDTH / 2 - 300, runner_y_initial);
                 iShowSprite(&runner);
+                start_btn_highlight = 0;
             }
         }
         else if (currentPage == SCENES)
@@ -1065,6 +1191,7 @@ void iMouse(int button, int state, int mx, int my)
             if (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y_resume && my <= btn_y_resume + btn_h)
             {
                 is_paused = 0;
+                memset(paused_btn_highlight, 0, sizeof(paused_btn_highlight));
             }
             else if (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y_exit && my <= btn_y_exit + btn_h)
             {
@@ -1094,6 +1221,7 @@ void iMouse(int button, int state, int mx, int my)
                 }
                 memset(coin_x, 0, sizeof(coin_x));
                 memset(coin_y, 0, sizeof(coin_y));
+                memset(paused_btn_highlight, 0, sizeof(paused_btn_highlight));
             }
         }
         else if (currentPage == PLAY && is_game_over && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
@@ -1110,6 +1238,7 @@ void iMouse(int button, int state, int mx, int my)
                 in_game_earned_coin = 0;
                 memset(coin_x, 0, sizeof(coin_x));
                 memset(coin_y, 0, sizeof(coin_y));
+                memset(gameover_btn_highlight, 0, sizeof(gameover_btn_highlight));
             }
             else if (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y_exit && my <= btn_y_exit + btn_h)
             {
@@ -1126,12 +1255,9 @@ void iMouse(int button, int state, int mx, int my)
                 in_game_earned_coin = 0;
                 memset(coin_x, 0, sizeof(coin_x));
                 memset(coin_y, 0, sizeof(coin_y));
+                memset(gameover_btn_highlight, 0, sizeof(gameover_btn_highlight));
             }
         }
-    }
-    if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN)
-    {
-        // place your codes here
     }
 }
 
@@ -1260,6 +1386,7 @@ int main(int argc, char *argv[])
     srand(time(0));
     glutInit(&argc, argv);
     // place your own initialization codes here.
+    load_game_data();
     load_images();
     initialize_sprites();
     iSetTimer(50, iAnimSprites);
@@ -1269,6 +1396,7 @@ int main(int argc, char *argv[])
     iInitializeSound();
     sound_bg_chnl = iPlaySound("assets/sound/bg.wav", true, 50);
     running_sound = iPlaySound("assets/sound/running.wav", true, 50);
+    glutCloseFunc(close_callback);
     iInitialize(SCRN_WIDTH, SCRN_HEIGHT, "Obstacle Runner");
     return 0;
 }
