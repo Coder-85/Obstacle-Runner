@@ -696,25 +696,28 @@ void draw_scene_page_modal(char name[], int required_coin, int scene_idx)
     }
 
     iFilledRectangle(0, 0, 1000, 600);
-    iSetTransparentColor(20, 20, 20, 0.8);
-    iFilledRectangle(0, 420, 1000, 110);
+    if(can_be_unlocked){
+        iSetTransparentColor(2, 168, 77, 0.4);
+    }else{
+        iSetTransparentColor(168, 2, 2, 0.4);
+    }
+    iFilledRectangle(0, 220, 1000, 220);
     iSetColor(255, 255, 255);
     int text_size = get_text_width(name, 0.25, GLUT_STROKE_ROMAN);
-    iTextAdvanced((1000 - text_size) / 2, 490, name, 0.25, 1.0, GLUT_STROKE_ROMAN);
+    iTextAdvanced((1000 - text_size) / 2, 400, name, 0.25, 1.0, GLUT_STROKE_ROMAN);
 
     char coin_req[50];
     sprintf(coin_req, "Coin Required: %d", required_coin);
     text_size = get_text_width(coin_req, 0.18, GLUT_STROKE_ROMAN);
     iSetColor(255, 255, 255);
-    iTextAdvanced((1000 - text_size) / 2, 440, coin_req, 0.18, 1.0, GLUT_STROKE_ROMAN);
+    iTextAdvanced((1000 - text_size) / 2, 360, coin_req, 0.18, 1.0, GLUT_STROKE_ROMAN);
 
-    iSetTransparentColor(20, 20, 20, 0.8);
-    iFilledRectangle(0, 270, 1000, 70);
+    
     iSetColor(255, 255, 255);
     text_size = get_text_width(message1, 0.15, GLUT_STROKE_ROMAN);
-    iTextAdvanced((1000 - text_size) / 2, 310, message1, 0.15, 1.0, GLUT_STROKE_ROMAN);
+    iTextAdvanced((1000 - text_size) / 2, 270, message1, 0.15, 1.0, GLUT_STROKE_ROMAN);
     text_size = get_text_width(message2, 0.15, GLUT_STROKE_ROMAN);
-    iTextAdvanced((1000 - text_size) / 2, 280, message2, 0.15, 1.0, GLUT_STROKE_ROMAN);
+    iTextAdvanced((1000 - text_size) / 2, 240, message2, 0.15, 1.0, GLUT_STROKE_ROMAN);
 
     int modal_btn_w = 220, modal_btn_h = 50;
     int modal_btn_x = (SCRN_WIDTH - modal_btn_w) / 2;
@@ -1336,9 +1339,9 @@ void iMouse(int button, int state, int mx, int my)
                     scene_idx_for_modal = i;
                     is_modal_showing = 1;
                     if(i==1){
-                        coin_required_to_unlock = 100;
+                        coin_required_to_unlock = 50;
                     }else if(i==2){
-                        coin_required_to_unlock = 200;
+                        coin_required_to_unlock = 100;
                     }
                 }
             }
