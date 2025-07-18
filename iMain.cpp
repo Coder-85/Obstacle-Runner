@@ -83,7 +83,7 @@ int is_paused = 0;
 int is_game_over = 0;
 
 // Menu variables
-int paused_btn_highlight[2];
+int paused_btn_highlight[3];
 int gameover_btn_highlight[2];
 
 // Username input string
@@ -877,6 +877,7 @@ void iDraw()
             int btn_x = (SCRN_WIDTH - btn_w) / 2;
             int btn_y_resume = SCRN_HEIGHT / 2 + 10;
             int btn_y_exit = SCRN_HEIGHT / 2 - 70;
+            int btn_y_save_exit = SCRN_HEIGHT / 2 - 150;
             // Resume button
             if (paused_btn_highlight[0])
                 iSetTransparentColor(2, 168, 77, 0.4);
@@ -903,6 +904,19 @@ void iDraw()
             float exit_width = get_text_width(exit_label, 0.15f, GLUT_STROKE_MONO_ROMAN);
             iSetColor(255, 255, 255);
             iTextAdvanced(btn_x + (btn_w - exit_width) / 2, btn_y_exit + 15, exit_label, 0.15f, 1, GLUT_STROKE_MONO_ROMAN);
+            // Save & Exit button
+            if (paused_btn_highlight[2])
+                iSetTransparentColor(168, 2, 2, 0.4);
+            else
+                iSetColor(255, 255, 255);
+            if (paused_btn_highlight[2])
+                iFilledRectangle(btn_x, btn_y_save_exit, btn_w, btn_h);
+            else
+                iRectangle(btn_x, btn_y_save_exit, btn_w, btn_h);
+            const char *save_exit_label = "Save & Exit";
+            float save_exit_width = get_text_width(save_exit_label, 0.15f, GLUT_STROKE_MONO_ROMAN);
+            iSetColor(255, 255, 255);
+            iTextAdvanced(btn_x + (btn_w - save_exit_width) / 2, btn_y_save_exit + 15, save_exit_label, 0.15f, 1, GLUT_STROKE_MONO_ROMAN);
         }
 
         if (is_game_over)
@@ -1181,8 +1195,10 @@ void iMouseMove(int mx, int my)
         int btn_x = (SCRN_WIDTH - btn_w) / 2;
         int btn_y_resume = SCRN_HEIGHT / 2 + 10;
         int btn_y_exit = SCRN_HEIGHT / 2 - 70;
+        int btn_y_save_exit = SCRN_HEIGHT / 2 - 150;
         paused_btn_highlight[0] = (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y_resume && my <= btn_y_resume + btn_h);
         paused_btn_highlight[1] = (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y_exit && my <= btn_y_exit + btn_h);
+        paused_btn_highlight[2] = (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y_save_exit && my <= btn_y_save_exit + btn_h);
     }
 
     if (is_game_over)
@@ -1362,6 +1378,7 @@ void iMouse(int button, int state, int mx, int my)
             int btn_x = (SCRN_WIDTH - btn_w) / 2;
             int btn_y_resume = SCRN_HEIGHT / 2 + 10;
             int btn_y_exit = SCRN_HEIGHT / 2 - 70;
+            int btn_y_save_exit = SCRN_HEIGHT / 2 - 150;
             if (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y_resume && my <= btn_y_resume + btn_h)
             {
                 is_paused = 0;
@@ -1383,12 +1400,10 @@ void iMouse(int button, int state, int mx, int my)
                 is_jumping = 0;
                 is_super_jumping = 0;
                 is_sliding = 0;
-
                 for (int i = 0; i < MAX_OBJECT; i++)
                 {
                     object_active[i] = object_idx[i] = object_x[i] = object_w[i] = object_h[i] = 0;
                 }
-
                 for (int i = 0; i < MAX_COIN; i++)
                 {
                     coin_active[i] = coin_collided[i] = coin_x[i] = coin_y[i] = 0;
@@ -1396,6 +1411,11 @@ void iMouse(int button, int state, int mx, int my)
                 memset(coin_x, 0, sizeof(coin_x));
                 memset(coin_y, 0, sizeof(coin_y));
                 memset(paused_btn_highlight, 0, sizeof(paused_btn_highlight));
+            }
+            else if (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y_save_exit && my <= btn_y_save_exit + btn_h)
+            {
+                save_game();
+                exit(0);
             }
         }
         else if (currentPage == PLAY && is_game_over && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
