@@ -1,9 +1,9 @@
-55
-Ritman 794
-asd 694
-Sifat 652
-Alex 598
-Sifat 494
-asds 488
-dsfsd 370
-asd 336
+1
+hello 1104
+asd 1060
+asd 552
+dfgd 536
+sda 390
+sifat 370
+dfgd 292
+sdf 242

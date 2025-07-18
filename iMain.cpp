@@ -13,6 +13,7 @@
 #define MAX_OBJECT 2
 #define LEADERBOARD_SIZE 8
 #define MAX_COIN 4
+#define NUM_OF_SCENE 3
 
 enum page_status
 {
@@ -72,8 +73,8 @@ int sprite_x = 192;
 int sprite_y = 173;
 
 // Game variables
-int unlock_status[3] = {1, 0, 0};
-int selected_status[3] = {1, 0, 0};
+int unlock_status[NUM_OF_SCENE];
+int selected_status[NUM_OF_SCENE];
 int game_running = 0;
 int is_dying = 0;
 int is_dying_counter = 0;
@@ -124,6 +125,7 @@ int coin_collided[MAX_COIN];
 int coin_x[MAX_COIN];
 int coin_y[MAX_COIN];
 int coin_w = 45 * 0.5, coin_h = 45 * 0.5;
+int scene_unlocking_coin[NUM_OF_SCENE - 1] = {10, 20};
 
 // Objects img
 Image box_img;
@@ -237,6 +239,45 @@ void load_game_data()
     }
     fscanf(fp, "%f %d %d %d", &jump_time, &is_jumping, &is_super_jumping, &is_sliding);
     fclose(fp);
+}
+
+void load_scene_status()
+{
+    FILE *fp = fopen("data/scene_status.txt", "r");
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Error while opening scene_status.txt");
+    }
+    for (int i = 0; i < NUM_OF_SCENE; i++)
+    {
+        fscanf(fp, "%d ", &unlock_status[i]);
+    }
+    for (int i = 0; i < NUM_OF_SCENE; i++)
+    {
+        fscanf(fp, "%d ", &selected_status[i]);
+    }
+    fclose(fp);
+}
+
+void reset_scene_status()
+{
+    FILE *fp = fopen("data/scene_status.txt", "w");
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Error while opening scene_status.txt");
+    }
+    for (int i = 0; i < NUM_OF_SCENE; i++)
+    {
+        fprintf(fp, "%d ", unlock_status[i]);
+    }
+    fprintf(fp, "\n");
+    for (int i = 0; i < NUM_OF_SCENE; i++)
+    {
+        fprintf(fp, "%d ", selected_status[i]);
+    }
+    fprintf(fp, "\n");
+    fclose(fp);
+    close_callback();
 }
 
 int get_random_object1_x()
@@ -784,7 +825,7 @@ void iDraw()
             int object1_x = (SCRN_WIDTH - object1_w) / 2;
             int object1_y = (SCRN_HEIGHT - object1_h) / 2 + 60;
             // Draw label
-            char *label = "Input Username";
+            char label[] = "Input Username";
             float label_scale = 0.13f;
             float label_width = get_text_width(label, label_scale, GLUT_STROKE_MONO_ROMAN);
             iSetColor(255, 255, 255);
@@ -995,7 +1036,7 @@ void iDraw()
         iSetColor(255, 255, 255);
 
         char scene_name[3][50] = {"Ground Runner", "Mountain Runner", "Horror Runner"};
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < NUM_OF_SCENE; i++)
         {
             char scene_status[20];
             if (unlock_status[i] == 1 && selected_status[i] == 1)
@@ -1341,7 +1382,7 @@ void iMouse(int button, int state, int mx, int my)
         else if (currentPage == SCENES)
         {
             // Check if any scene is clicked
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < NUM_OF_SCENE; i++)
             {
                 int x1 = 55 * (i + 1) + 260 * i;
                 int x2 = x1 + 260;
@@ -1351,19 +1392,13 @@ void iMouse(int button, int state, int mx, int my)
                 {
                     memset(selected_status, 0, sizeof(selected_status));
                     selected_status[i] = 1;
+                    reset_scene_status();
                 }
                 else if ((mx >= x1 && mx <= x2) && (my >= y1 && my <= y2) && unlock_status[i] == 0)
                 {
                     scene_idx_for_modal = i;
                     is_modal_showing = 1;
-                    if (i == 1)
-                    {
-                        coin_required_to_unlock = 50;
-                    }
-                    else if (i == 2)
-                    {
-                        coin_required_to_unlock = 100;
-                    }
+                    coin_required_to_unlock = scene_unlocking_coin[i - 1];
                 }
             }
             int btn_w = 220, btn_h = 50;
@@ -1376,8 +1411,12 @@ void iMouse(int button, int state, int mx, int my)
             }
             else if (is_modal_showing && (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y && my <= btn_y + btn_h) && can_be_unlocked)
             {
+                total_coin = total_coin - scene_unlocking_coin[scene_idx_for_modal - 1];
+                unlock_status[scene_idx_for_modal] = 1;
                 is_modal_showing = 0;
                 can_be_unlocked = 0;
+                reset_scene_status();
+                close_callback();
             }
         }
         else if (currentPage == PLAY && is_paused == 1 && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
@@ -1590,6 +1629,7 @@ int main(int argc, char *argv[])
     glutInit(&argc, argv);
     // place your own initialization codes here.
     load_game_data();
+    load_scene_status();
     load_images();
     initialize_sprites();
     iSetTimer(50, iAnimSprites);
