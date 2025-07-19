@@ -429,7 +429,8 @@ void iAnimateSpriteWithOffset(Sprite *sprite)
     else
         sprite->currentFrame = (sprite->currentFrame + 1) % 10;
 
-    iUpdateCollisionMask(sprite);
+    if (game_running)
+        iUpdateCollisionMask(sprite);
 }
 
 void iAnimateObjectSprites()
@@ -467,11 +468,27 @@ void iAnimSprites()
             scene_scroll = 0;
     }
 
-    if (currentPage == PLAY && is_jumping && game_running)
+    if ((currentPage == PLAY && is_jumping && game_running) || (currentPage == HELP && is_jumping))
     {
         jump_time += 0.1f;
-        float y = runner_y_initial + jump_velocity * jump_time - 0.5f * g * jump_time * jump_time;
-        if (y <= runner_y_initial)
+        float y;
+        if (currentPage == PLAY)
+        {
+            y = runner_y_initial + jump_velocity * jump_time - 0.5f * g * jump_time * jump_time;
+        }
+        else if (currentPage == HELP)
+        {
+            y = 173 + jump_velocity * jump_time - 0.5f * g * jump_time * jump_time;
+        }
+        if (currentPage == HELP && y < 173)
+        {
+            y = 173;
+            iSetSpritePosition(&runner, 142, 173);
+            is_jumping = 0;
+            jump_time = 0.0f;
+            runner.currentFrame = 0;
+        }
+        if (currentPage == PLAY && y <= runner_y_initial)
         {
             y = runner_y_initial;
             is_jumping = 0;
@@ -481,11 +498,27 @@ void iAnimSprites()
         iSetSpritePosition(&runner, runner.x, y);
     }
 
-    if (currentPage == PLAY && is_super_jumping && game_running)
+    if ((currentPage == PLAY && is_super_jumping && game_running) || (currentPage == HELP && is_super_jumping))
     {
         jump_time += 0.1f;
-        float y = runner_y_initial + super_jump_velocity * jump_time - 0.5f * g * jump_time * jump_time;
-        if (y <= runner_y_initial)
+        float y;
+        if (currentPage == PLAY)
+        {
+            y = runner_y_initial + super_jump_velocity * jump_time - 0.5f * g * jump_time * jump_time;
+        }
+        else if (currentPage == HELP)
+        {
+            y = 173 + super_jump_velocity * jump_time - 0.5f * g * jump_time * jump_time;
+        }
+        if (currentPage == HELP && y < 173)
+        {
+            y = 173;
+            iSetSpritePosition(&runner, 142, 173);
+            is_super_jumping = 0;
+            jump_time = 0.0f;
+            runner.currentFrame = 0;
+        }
+        if (currentPage == PLAY && y <= runner_y_initial)
         {
             y = runner_y_initial;
             is_super_jumping = 0;
@@ -495,10 +528,17 @@ void iAnimSprites()
         iSetSpritePosition(&runner, runner.x, y);
     }
 
-    if (currentPage == PLAY && is_sliding && game_running)
+    if ((currentPage == PLAY && is_sliding && game_running) || (currentPage == HELP && is_sliding))
     {
         slide_time += 0.1f;
-        if (slide_time >= MAX_SLIDE_DURATION)
+        if (currentPage == HELP && slide_time >= MAX_SLIDE_DURATION)
+        {
+            iSetSpritePosition(&runner, 142, 173);
+            is_sliding = 0;
+            slide_time = 0.f;
+            runner.currentFrame = 0;
+        }
+        if (currentPage == PLAY && slide_time >= MAX_SLIDE_DURATION)
         {
             is_sliding = 0;
             slide_time = 0.f;
@@ -1598,6 +1638,29 @@ void iKeyboard(unsigned char key)
             running_sound_active = 1;
         }
     }
+
+    if (!is_jumping && !is_super_jumping && !is_sliding && !is_dying && currentPage == HELP)
+    {
+
+        if (key == 'w')
+        {
+            is_jumping = 1;
+            runner.currentFrame = 0;
+            jump_time = 0.0f;
+        }
+        if (key == 'd')
+        {
+            is_super_jumping = 1;
+            runner.currentFrame = 0;
+            jump_time = 0.0f;
+        }
+
+        if (key == 's')
+        {
+            is_sliding = 1;
+            runner.currentFrame = 0;
+        }
+    }
 }
 
 /*
@@ -1613,10 +1676,6 @@ void iSpecialKeyboard(unsigned char key)
 {
     switch (key)
     {
-    case GLUT_KEY_END:
-        iSetSpritePosition(&runner, sprite_x, sprite_y);
-        currentPage = HOME;
-        break;
     // place your codes for other keys here
     default:
         break;
