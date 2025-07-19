@@ -1106,8 +1106,9 @@ void iDraw()
             {
                 strcpy(scene_status, "Unlocked");
             }
-
-            iShowImage(55 * (i + 1) + 260 * i, 207, "assets/img/scenes/1.png");
+            char scene_img_path[100];
+            sprintf(scene_img_path, "assets/img/scenes/%d.png", i + 1);
+            iShowImage(55 * (i + 1) + 260 * i, 207, scene_img_path);
             // char scene_name[50] = "Gound Runner";
             float text_scale_1 = 0.15;
             float text_width_1 = get_text_width(scene_status, text_scale_1, GLUT_STROKE_MONO_ROMAN);
