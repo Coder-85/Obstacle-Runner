@@ -10,6 +10,7 @@
 #define JUMP_FRAME_OFFSET 10
 #define SLIDE_FRAME_OFFSET 20
 #define DEAD_FRAME_OFFSET 30
+#define IDLE_FRAME_OFFSET 40
 #define MAX_OBJECT 2
 #define LEADERBOARD_SIZE 8
 #define MAX_COIN 4
@@ -65,8 +66,8 @@ const int home_option_h = 40;
 const int runner_y_initial = 136;
 
 // Sprite Images
-Image idle_frames[10];
-Image movement_frames[4 * 10];
+// Image idle_frames[10];
+Image movement_frames[5 * 10];
 
 // coordinate of the sprite image
 int sprite_x = 192;
@@ -82,6 +83,7 @@ int in_game_score = 0;
 int in_game_earned_coin = 0;
 int is_paused = 0;
 int is_game_over = 0;
+int is_idling = 0;
 
 // Menu variables
 int paused_btn_highlight[3];
@@ -352,17 +354,18 @@ void loadCoinData()
 
 void initialize_sprites()
 {
-    iLoadFramesFromFolder(idle_frames, "assets/img/sprite/idle");
-    // First 10 running, second 10 jumping, third 10 sliding, last 10 dead
+    // First 10 running, second 10 jumping, third 10 sliding, next 10 dead, last 10 idle
     iLoadFramesFromFolder(movement_frames, "assets/img/sprite/running");
     iLoadFramesFromFolder(movement_frames + JUMP_FRAME_OFFSET, "assets/img/sprite/jump");
     iLoadFramesFromFolder(movement_frames + SLIDE_FRAME_OFFSET, "assets/img/sprite/slide");
     iLoadFramesFromFolder(movement_frames + DEAD_FRAME_OFFSET, "assets/img/sprite/dead");
+    iLoadFramesFromFolder(movement_frames + IDLE_FRAME_OFFSET, "assets/img/sprite/idle");
 
     iInitSprite(&runner, -1);
     iSetSpritePosition(&runner, sprite_x, sprite_y);
     iScaleSprite(&runner, 0.23f);
-    iChangeSpriteFrames(&runner, idle_frames, 10);
+    iChangeSpriteFrames(&runner, movement_frames, 5 * 10);
+    is_idling = 1;
     for (int i = 0; i < MAX_OBJECT; i++)
     {
         iInitSprite(&objects[i], -1);
@@ -415,7 +418,13 @@ void iAnimateSpriteWithOffset(Sprite *sprite)
     if (!sprite || sprite->totalFrames <= 1 || !sprite->frames)
         return;
 
-    if (game_running)
+    if (is_idling)
+    {
+        sprite->currentFrame = (sprite->currentFrame + 1) % 10 + IDLE_FRAME_OFFSET;
+        return;
+    }
+
+    if (game_running || currentPage == HELP)
     {
         if (is_jumping || is_super_jumping)
             sprite->currentFrame = (sprite->currentFrame + 1) % 10 + JUMP_FRAME_OFFSET;
@@ -460,7 +469,6 @@ void iAnimSprites()
         return;
     }
 
-    iAnimateSpriteWithOffset(&runner);
     if (currentPage == PLAY && game_running)
     {
         scene_scroll += scene_scroll_velocity;
@@ -487,6 +495,7 @@ void iAnimSprites()
             is_jumping = 0;
             jump_time = 0.0f;
             runner.currentFrame = 0;
+            is_idling = 1;
         }
         if (currentPage == PLAY && y <= runner_y_initial)
         {
@@ -517,6 +526,7 @@ void iAnimSprites()
             is_super_jumping = 0;
             jump_time = 0.0f;
             runner.currentFrame = 0;
+            is_idling = 1;
         }
         if (currentPage == PLAY && y <= runner_y_initial)
         {
@@ -537,6 +547,7 @@ void iAnimSprites()
             is_sliding = 0;
             slide_time = 0.f;
             runner.currentFrame = 0;
+            is_idling = 1;
         }
         if (currentPage == PLAY && slide_time >= MAX_SLIDE_DURATION)
         {
@@ -736,6 +747,7 @@ void iAnimSprites()
             in_game_score += 2;
         }
     }
+    iAnimateSpriteWithOffset(&runner);
 }
 
 void iAnimCaret()
@@ -1365,7 +1377,7 @@ void iMouse(int button, int state, int mx, int my)
                             currentPage = PLAY;
                             is_typing_username = 0;
                             iSetSpritePosition(&runner, sprite_x, runner_y_initial);
-                            iChangeSpriteFrames(&runner, movement_frames, 4 * 10);
+                            is_idling = 0;
                             iShowSprite(&runner);
                             initialize_object_sprites();
                             start_btn_highlight = 0;
@@ -1413,7 +1425,7 @@ void iMouse(int button, int state, int mx, int my)
                 game_running = 1;
                 is_typing_username = 0;
                 iSetSpritePosition(&runner, sprite_x, sprite_y);
-                iChangeSpriteFrames(&runner, movement_frames, 4 * 10);
+                is_idling = 0;
                 iSetSpritePosition(&runner, SCRN_WIDTH / 2 - 300, runner_y_initial);
                 iShowSprite(&runner);
                 start_btn_highlight = 0;
@@ -1480,7 +1492,7 @@ void iMouse(int button, int state, int mx, int my)
                     iResumeSound(sound_bg_chnl);
                 }
                 iSetSpritePosition(&runner, sprite_x, sprite_y);
-                iChangeSpriteFrames(&runner, idle_frames, 10);
+                is_idling = 1;
                 is_paused = 0;
                 in_game_score = 0;
                 in_game_earned_coin = 0;
@@ -1530,7 +1542,7 @@ void iMouse(int button, int state, int mx, int my)
                     iResumeSound(sound_bg_chnl);
                 }
                 iSetSpritePosition(&runner, sprite_x, sprite_y);
-                iChangeSpriteFrames(&runner, idle_frames, 10);
+                is_idling = 1;
                 is_game_over = 0;
                 in_game_score = 0;
                 in_game_earned_coin = 0;
@@ -1645,12 +1657,14 @@ void iKeyboard(unsigned char key)
         if (key == 'w')
         {
             is_jumping = 1;
+            is_idling = 0;
             runner.currentFrame = 0;
             jump_time = 0.0f;
         }
         if (key == 'd')
         {
             is_super_jumping = 1;
+            is_idling = 0;
             runner.currentFrame = 0;
             jump_time = 0.0f;
         }
@@ -1658,6 +1672,7 @@ void iKeyboard(unsigned char key)
         if (key == 's')
         {
             is_sliding = 1;
+            is_idling = 0;
             runner.currentFrame = 0;
         }
     }
