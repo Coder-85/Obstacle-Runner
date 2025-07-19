@@ -1573,7 +1573,7 @@ void iKeyboard(unsigned char key)
     {
         // Escape key
     case 27:
-        if (currentPage == HELP || currentPage == LEADERBOARD || currentPage == SCENES)
+        if (currentPage == LEADERBOARD || currentPage == SCENES)
         {
             iSetSpritePosition(&runner, sprite_x, sprite_y);
             currentPage = HOME;
@@ -1675,6 +1675,12 @@ void iKeyboard(unsigned char key)
             is_idling = 0;
             runner.currentFrame = 0;
         }
+    }
+
+    if (currentPage == HELP && !is_jumping && !is_sliding && !is_super_jumping && key == 27)
+    {
+        iSetSpritePosition(&runner, sprite_x, sprite_y);
+        currentPage = HOME;
     }
 }
 
