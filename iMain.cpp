@@ -38,6 +38,7 @@ struct leaderboard
 int total_coin = 0;
 struct leaderboard leaderboard[LEADERBOARD_SIZE];
 int read_save_files;
+int selected_scene_idx = 0;
 
 // scene page modal variable
 int is_modal_showing = 0;
@@ -116,7 +117,8 @@ float slide_time = 0.f;
 
 // Obstacle variable
 int object_active[MAX_OBJECT] = {0};
-int object_idx[MAX_OBJECT] = {0};
+int object_idx[MAX_OBJECT] = {0}; // 0-> Box, 1-> Pillar, 2-> Stone // end of scene 0, 3-> spring, 4-> Mine, 5-> broom(like stone)// end of scene 01, 6-> something like pillar , 7-> skull(like box), 8-> mystery question(like box)
+
 int object_x[MAX_OBJECT];
 int object_y[MAX_OBJECT];
 int object_w[MAX_OBJECT], object_h[MAX_OBJECT];
@@ -133,10 +135,24 @@ int scene_unlocking_coin[NUM_OF_SCENE - 1] = {10, 20};
 Image box_img;
 Image pillar_img;
 Image stone_img;
+Image spring_img;
+Image mine_img;
+Image broom_img;
 
 // Objects Sprite
 Sprite objects[MAX_OBJECT];
 
+void get_the_selected_scene_idx()
+{
+    for (int i = 0; i < NUM_OF_SCENE; i++)
+    {
+        if (selected_status[i] == 1)
+        {
+            selected_scene_idx = i;
+            break;
+        }
+    }
+}
 int cmp(const void *a, const void *b)
 {
     return ((struct leaderboard *)a)->score < ((struct leaderboard *)b)->score;
@@ -388,6 +404,18 @@ void initialize_object_sprites()
         {
             iChangeSpriteFrames(&objects[i], &stone_img, 1);
         }
+        else if (object_idx[i] == 3)
+        {
+            iChangeSpriteFrames(&objects[i], &spring_img, 1);
+        }
+        else if (object_idx[i] == 4)
+        {
+            iChangeSpriteFrames(&objects[i], &mine_img, 1);
+        }
+        else if (object_idx[i] == 5)
+        {
+            iChangeSpriteFrames(&objects[i], &broom_img, 1);
+        }
     }
 }
 
@@ -403,7 +431,14 @@ void load_images()
     iLoadImage(&stone_img, "assets/img/objects/killer/stone.png");
     iScaleImage(&stone_img, 1.9f);
     iLoadImage(&pillar_img, "assets/img/objects/killer/pillar.png");
-    iScaleImage(&pillar_img, 1.6f);
+    iScaleImage(&pillar_img, 1.55f);
+
+    iLoadImage(&spring_img, "assets/img/objects/booster/spring.png");
+    iScaleImage(&spring_img, 0.3f);
+    iLoadImage(&mine_img, "assets/img/objects/killer/mine.png");
+    iScaleImage(&mine_img, 1.0f);
+    iLoadImage(&broom_img, "assets/img/objects/killer/broom.png");
+    iScaleImage(&broom_img, 1.3f);
 
     for (int i = 0; i < 3; i++)
     {
@@ -571,19 +606,54 @@ void iAnimSprites()
         {
             if (!object_active[i] || object_x[i] + object_w[i] < 0)
             {
-                object_idx[i] = rand() % 3;
+                int highest_obj;
+                if (selected_scene_idx == 0)
+                {
+                    highest_obj = 3;
+                }
+                else if (selected_scene_idx == 1)
+                {
+                    highest_obj = 6;
+                }
+                else if (selected_scene_idx == 2)
+                {
+                    highest_obj = 9;
+                }
+                object_idx[i] = rand() % highest_obj;
                 if (object_idx[i] == 0)
                 {
                     object_w[i] = 45 * 1.5, object_h[i] = 35 * 1.5;
                 }
                 else if (object_idx[i] == 1)
                 {
-                    object_w[i] = 45 * 1.5, object_h[i] = 130 * 1.5;
+                    object_w[i] = 45 * 1.55, object_h[i] = 130 * 1.55;
                 }
                 else if (object_idx[i] == 2)
                 {
                     object_w[i] = 76 * 1.6, object_h[i] = 77 * 1.6;
                 }
+                else if (object_idx[i] == 3)
+                {
+                    object_w[i] = 108 * 0.3, object_h[i] = 146 * 0.3;
+                }
+                else if (object_idx[i] == 4)
+                {
+                    object_w[i] = 100 * 1.0, object_h[i] = 47 * 1.0;
+                }
+                else if (object_idx[i] == 5)
+                {
+                    object_w[i] = 134 * 1.3, object_h[i] = 97 * 1.3;
+                }
+                else if (object_idx[i] == 6)
+                {
+                }
+                else if (object_idx[i] == 7)
+                {
+                }
+                else if (object_idx[i] == 8)
+                {
+                }
+
                 if (i == 0)
                 {
                     object_x[i] = get_random_object1_x() + 400;
@@ -592,7 +662,7 @@ void iAnimSprites()
                 {
                     object_x[i] = object_x[0] + 750;
                 }
-                if (object_idx[i] == 2)
+                if (object_idx[i] == 2 || object_idx[i] == 5)
                 {
                     object_y[i] = runner_y_initial + 100;
                 }
@@ -865,8 +935,21 @@ void iDraw()
         int bg_width = 2000;
         int bg_x1 = -scene_scroll;
         int bg_x2 = bg_x1 + bg_width;
-        iShowLoadedImage(bg_x1, 0, &level_bg_img[0]);
-        iShowLoadedImage(bg_x2, 0, &level_bg_img[0]);
+        if (selected_scene_idx == 0)
+        {
+            iShowLoadedImage(bg_x1, 0, &level_bg_img[0]);
+            iShowLoadedImage(bg_x2, 0, &level_bg_img[0]);
+        }
+        else if (selected_scene_idx == 1)
+        {
+            iShowLoadedImage(bg_x1, 0, &level_bg_img[1]);
+            iShowLoadedImage(bg_x2, 0, &level_bg_img[1]);
+        }
+        else if (selected_scene_idx == 2)
+        {
+            iShowLoadedImage(bg_x1, 0, &level_bg_img[2]);
+            iShowLoadedImage(bg_x2, 0, &level_bg_img[2]);
+        }
 
         if (game_running == 0 && is_dying == 0)
         {
@@ -1446,6 +1529,7 @@ void iMouse(int button, int state, int mx, int my)
                     memset(selected_status, 0, sizeof(selected_status));
                     selected_status[i] = 1;
                     reset_scene_status();
+                    get_the_selected_scene_idx();
                 }
                 else if ((mx >= x1 && mx <= x2) && (my >= y1 && my <= y2) && unlock_status[i] == 0)
                 {
@@ -1713,6 +1797,7 @@ int main(int argc, char *argv[])
     load_scene_status();
     load_images();
     initialize_sprites();
+    get_the_selected_scene_idx();
     iSetTimer(50, iAnimSprites);
     iSetTimer(100, iAnimCaret); // Add caret animation timer
 
