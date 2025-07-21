@@ -6,7 +6,7 @@
 #define SCRN_HEIGHT 600
 #define BTN_TOTAL 6
 #define BTN_EXIT (BTN_TOTAL - 1)
-#define MAX_SLIDE_DURATION 1.f
+#define MAX_SLIDE_DURATION 1.5f
 #define JUMP_FRAME_OFFSET 10
 #define SLIDE_FRAME_OFFSET 20
 #define DEAD_FRAME_OFFSET 30
@@ -100,7 +100,9 @@ int caret_visible = 1;
 int caret_timer = 0;
 
 float scene_scroll = 0.f;
-float scene_scroll_velocity = 30.f;
+float scene_scroll_velocity = 15.f;
+float frame_time = 0.0f;
+float frame_interval = 1/12.f;
 
 // Jumping vairables
 int is_jumping = 0;
@@ -457,6 +459,7 @@ void load_images()
         char bg_path[50];
         sprintf(bg_path, "assets/img/bg/game_bg_%03d.png", i + 1);
         iLoadImage(&level_bg_img[i], bg_path);
+        iResizeImage(&level_bg_img[i], SCRN_WIDTH, SCRN_HEIGHT);
     }
 }
 
@@ -465,13 +468,17 @@ void iAnimateSpriteWithOffset(Sprite *sprite)
     if (!sprite || sprite->totalFrames <= 1 || !sprite->frames)
         return;
 
-    if (is_idling)
-    {
-        sprite->currentFrame = (sprite->currentFrame + 1) % 10 + IDLE_FRAME_OFFSET;
+    static float frame_timer = 0.0f;
+    const float dt = 1.f/ 60.f;
+    const float frame_interval = 1.f/20.f;
+    frame_timer += dt;
+    if (frame_timer < frame_interval)
         return;
-    }
+    frame_timer = 0.0f;
 
-    if (game_running || currentPage == HELP)
+    if (is_idling)
+        sprite->currentFrame = (sprite->currentFrame + 1) % 10 + IDLE_FRAME_OFFSET;
+    else if (game_running || currentPage == HELP)
     {
         if (is_jumping || is_super_jumping || is_spring_jumping)
             sprite->currentFrame = (sprite->currentFrame + 1) % 10 + JUMP_FRAME_OFFSET;
@@ -506,6 +513,26 @@ void iAnimateObjectSprites()
 
 void iAnimSprites()
 {
+    static clock_t last_frame_time = 0;
+    const float target_frame_time = 1.f/60.0f;
+    clock_t now = clock();
+    float elapsed = (float)(now - last_frame_time) / CLOCKS_PER_SEC;
+    if (elapsed < target_frame_time)
+        return;
+    if (elapsed > target_frame_time)
+        last_frame_time = now;
+    else
+    {
+        struct timespec ts;
+        ts.tv_sec = 0;
+        ts.tv_nsec = (long)((target_frame_time - elapsed) * 1e9);
+        nanosleep(&ts, NULL);
+        last_frame_time = clock();
+    }
+
+    if (!is_dying && game_running && !is_game_over)
+        iWrapImage(&level_bg_img[selected_scene_idx], -scene_scroll_velocity);
+
     if (is_paused || is_game_over)
     {
         if (is_sound_on)
@@ -516,16 +543,9 @@ void iAnimSprites()
         return;
     }
 
-    if (currentPage == PLAY && game_running)
-    {
-        scene_scroll += scene_scroll_velocity;
-        if (scene_scroll > 2000)
-            scene_scroll = 0;
-    }
-
     if ((currentPage == PLAY && is_jumping && game_running) || (currentPage == HELP && is_jumping))
     {
-        jump_time += 0.1f;
+        jump_time += 0.05f;
         float y;
         if (currentPage == PLAY)
         {
@@ -556,7 +576,7 @@ void iAnimSprites()
 
     if ((currentPage == PLAY && is_super_jumping && game_running) || (currentPage == HELP && is_super_jumping))
     {
-        jump_time += 0.1f;
+        jump_time += 0.05f;
         float y;
         if (currentPage == PLAY)
         {
@@ -587,7 +607,7 @@ void iAnimSprites()
 
     if ((currentPage == PLAY && is_sliding && game_running) || (currentPage == HELP && is_sliding))
     {
-        slide_time += 0.1f;
+        slide_time += 0.05f;
         if (currentPage == HELP && slide_time >= MAX_SLIDE_DURATION)
         {
             iSetSpritePosition(&runner, 142, 173);
@@ -869,7 +889,7 @@ void iAnimSprites()
             is_dying_counter++;
             if (is_dying_counter == 8)
             {
-                scene_scroll_velocity = 30.0f;
+                scene_scroll_velocity = 15.f;
                 is_dying = 0;
                 is_dying_counter = 0;
                 for (int i = 0; i < MAX_OBJECT; i++)
@@ -1011,24 +1031,8 @@ void iDraw()
     {
         iClear();
         // Draw scrolling background
-        int bg_width = 2000;
-        int bg_x1 = -scene_scroll;
-        int bg_x2 = bg_x1 + bg_width;
-        if (selected_scene_idx == 0)
-        {
-            iShowLoadedImage(bg_x1, 0, &level_bg_img[0]);
-            iShowLoadedImage(bg_x2, 0, &level_bg_img[0]);
-        }
-        else if (selected_scene_idx == 1)
-        {
-            iShowLoadedImage(bg_x1, 0, &level_bg_img[1]);
-            iShowLoadedImage(bg_x2, 0, &level_bg_img[1]);
-        }
-        else if (selected_scene_idx == 2)
-        {
-            iShowLoadedImage(bg_x1, 0, &level_bg_img[2]);
-            iShowLoadedImage(bg_x2, 0, &level_bg_img[2]);
-        }
+
+        iShowLoadedImage(0, 0, &level_bg_img[selected_scene_idx]);
 
         if (game_running == 0 && is_dying == 0)
         {
@@ -1885,7 +1889,7 @@ int main(int argc, char *argv[])
     load_images();
     initialize_sprites();
     get_the_selected_scene_idx();
-    iSetTimer(50, iAnimSprites);
+    iSetTimer(10, iAnimSprites);
     iSetTimer(100, iAnimCaret); // Add caret animation timer
 
     // initialize sounds
