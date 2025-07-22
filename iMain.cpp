@@ -530,7 +530,7 @@ void iAnimSprites()
         last_frame_time = clock();
     }
 
-    if (!is_dying && game_running && !is_game_over)
+    if (!is_dying && game_running && !is_game_over && !is_paused)
         iWrapImage(&level_bg_img[selected_scene_idx], -scene_scroll_velocity);
 
     if (is_paused || is_game_over)
