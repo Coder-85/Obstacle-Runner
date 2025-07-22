@@ -459,7 +459,7 @@ void load_images()
         char bg_path[50];
         sprintf(bg_path, "assets/img/bg/game_bg_%03d.png", i + 1);
         iLoadImage(&level_bg_img[i], bg_path);
-        iResizeImage(&level_bg_img[i], SCRN_WIDTH, SCRN_HEIGHT);
+        iResizeImage(&level_bg_img[i], SCRN_WIDTH*2, SCRN_HEIGHT);
     }
 }
 
@@ -627,7 +627,7 @@ void iAnimSprites()
 
     if (currentPage == PLAY && is_spring_jumping && game_running)
     {
-        jump_time += 0.05f;
+        jump_time += 0.03f;
         float y;
         y = runner_y_initial + super_jump_velocity * jump_time - 0.5f * g * jump_time * jump_time;
 
@@ -639,6 +639,7 @@ void iAnimSprites()
             runner.currentFrame = 0;
         }
         iSetSpritePosition(&runner, runner.x, y);
+        printf("(%f, %d, %f) ", jump_time, runner.x, y);
     }
 
     if (currentPage == PLAY && game_running && (is_sliding || is_jumping || is_super_jumping))
@@ -749,7 +750,7 @@ void iAnimSprites()
 
         for (int i = 0; i < MAX_COIN; i++)
         {
-            if (!coin_active[i] || coin_x[i] + coin_w < 0)
+            if ((!coin_active[i] || coin_x[i] + coin_w < 0)  && object_idx[0] != 3)
             {
                 if (coin_collided[i] && coin_x[i] + coin_w > 0)
                 {
@@ -1095,7 +1096,7 @@ void iDraw()
                 }
             }
 
-            if (!is_paused && !is_game_over && game_running)
+            if (!is_game_over && game_running)
             {
                 for (int i = 0; i < MAX_COIN; i++)
                 {
@@ -1889,7 +1890,7 @@ int main(int argc, char *argv[])
     load_images();
     initialize_sprites();
     get_the_selected_scene_idx();
-    iSetTimer(10, iAnimSprites);
+    iSetTimer(6, iAnimSprites);
     iSetTimer(100, iAnimCaret); // Add caret animation timer
 
     // initialize sounds
