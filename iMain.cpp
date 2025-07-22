@@ -15,6 +15,7 @@
 #define LEADERBOARD_SIZE 8
 #define MAX_COIN 4
 #define NUM_OF_SCENE 3
+#define MAX_SPRING_COIN 7
 
 enum page_status
 {
@@ -58,6 +59,7 @@ Image level_bg_img[3];        // Background image for the level
 Image home_coin_img;          // Image of coin on the home page
 Image game_score_img;         // Image istead of score word in game
 Sprite runner;                // Sprite for the runner character
+float runner_scalling = 0.23f;
 int home_option_color[BTN_TOTAL] = {0};
 // Button labels and positions for home page options
 const char *home_option_labels[BTN_TOTAL] = {"New Game", "Saved Game", "Scenes", "Leaderboard", "Help", "Exit"};
@@ -102,7 +104,7 @@ int caret_timer = 0;
 float scene_scroll = 0.f;
 float scene_scroll_velocity = 15.f;
 float frame_time = 0.0f;
-float frame_interval = 1/12.f;
+float frame_interval = 1 / 12.f;
 
 // Jumping vairables
 int is_jumping = 0;
@@ -129,6 +131,10 @@ int object_x[MAX_OBJECT];
 int object_y[MAX_OBJECT];
 int object_w[MAX_OBJECT], object_h[MAX_OBJECT];
 
+int is_spring_allowed = 1;
+int is_spring_coin_available = 0;
+int last_spring_coin_x = 0;
+
 // Coin variables
 int coin_active[MAX_COIN];
 int coin_collided[MAX_COIN];
@@ -137,13 +143,11 @@ int coin_y[MAX_COIN];
 int coin_w = 45 * 0.5, coin_h = 45 * 0.5;
 int scene_unlocking_coin[NUM_OF_SCENE - 1] = {10, 20};
 
-int coin_spring_active[8] = {0};
-int coin_spring_collided[8] = {0};
-int coin_spring_x[8] = {0};
-int coin_spring_y[8] = {0};
+int coin_spring_active[MAX_SPRING_COIN] = {0};
+int coin_spring_collided[MAX_SPRING_COIN] = {0};
+int coin_spring_x[MAX_SPRING_COIN] = {0};
+int coin_spring_y[MAX_SPRING_COIN] = {0};
 int spring_coin_initial_x = 0;
-
-int is_spring_available = 0;
 
 // Objects img
 Image box_img;
@@ -322,6 +326,11 @@ int check_collision_with_coin(int x1, int y1, int w1, int h1, int x2, int y2, in
     return (y1 <= y2 + h2 && x1 + w1 >= x2 && y2 <= y1 + h1 && x2 + w2 >= x1);
 }
 
+int check_collision_with_spring_coin(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)
+{
+    return (y1 <= y2 + h2 && x1 + w1 >= x2 && y2 <= y1 + h1 && x2 + w2 >= x1);
+}
+// runner.x, runner.y, runner_w, runner_h, coin_spring_x[i], coin_spring_y[i], coin_w, coin_h))
 inline int get_home_option_y(int idx)
 {
     return 30 + 70 * (BTN_TOTAL - idx);
@@ -393,7 +402,7 @@ void initialize_sprites()
 
     iInitSprite(&runner, -1);
     iSetSpritePosition(&runner, sprite_x, sprite_y);
-    iScaleSprite(&runner, 0.23f);
+    iScaleSprite(&runner, runner_scalling);
     iChangeSpriteFrames(&runner, movement_frames, 5 * 10);
     is_idling = 1;
     for (int i = 0; i < MAX_OBJECT; i++)
@@ -459,7 +468,7 @@ void load_images()
         char bg_path[50];
         sprintf(bg_path, "assets/img/bg/game_bg_%03d.png", i + 1);
         iLoadImage(&level_bg_img[i], bg_path);
-        iResizeImage(&level_bg_img[i], SCRN_WIDTH*2, SCRN_HEIGHT);
+        iResizeImage(&level_bg_img[i], SCRN_WIDTH * 2, SCRN_HEIGHT);
     }
 }
 
@@ -469,8 +478,8 @@ void iAnimateSpriteWithOffset(Sprite *sprite)
         return;
 
     static float frame_timer = 0.0f;
-    const float dt = 1.f/ 60.f;
-    const float frame_interval = 1.f/20.f;
+    const float dt = 1.f / 60.f;
+    const float frame_interval = 1.f / 20.f;
     frame_timer += dt;
     if (frame_timer < frame_interval)
         return;
@@ -514,7 +523,7 @@ void iAnimateObjectSprites()
 void iAnimSprites()
 {
     static clock_t last_frame_time = 0;
-    const float target_frame_time = 1.f/60.0f;
+    const float target_frame_time = 1.f / 60.0f;
     clock_t now = clock();
     float elapsed = (float)(now - last_frame_time) / CLOCKS_PER_SEC;
     if (elapsed < target_frame_time)
@@ -639,10 +648,10 @@ void iAnimSprites()
             runner.currentFrame = 0;
         }
         iSetSpritePosition(&runner, runner.x, y);
-        printf("(%f, %d, %f) ", jump_time, runner.x, y);
+        // printf("(%f, %d, %f) ", jump_time, runner.x, y);
     }
 
-    if (currentPage == PLAY && game_running && (is_sliding || is_jumping || is_super_jumping))
+    if (currentPage == PLAY && game_running && (is_sliding || is_jumping || is_super_jumping || is_spring_jumping))
     {
         iPauseSound(running_sound);
         running_sound_active = 0;
@@ -669,6 +678,25 @@ void iAnimSprites()
                     highest_obj = 9;
                 }
                 object_idx[i] = rand() % highest_obj;
+
+                if (i == 0 && !is_spring_allowed && object_idx[0] == 3)
+                {
+                    while (object_idx[i] == 3)
+                    {
+                        object_idx[i] = rand() % highest_obj;
+                    }
+                    is_spring_allowed = 1;
+                }
+                else if (i == 0 && is_spring_allowed && object_idx[0] == 3)
+                {
+                    is_spring_allowed = 0;
+                }
+
+                if (object_idx[0] != 3)
+                {
+                    is_spring_allowed = 1;
+                }
+
                 if (i == 1)
                 {
                     while (object_idx[i] == 3)
@@ -750,7 +778,7 @@ void iAnimSprites()
 
         for (int i = 0; i < MAX_COIN; i++)
         {
-            if ((!coin_active[i] || coin_x[i] + coin_w < 0)  && object_idx[0] != 3)
+            if ((!coin_active[i] || coin_x[i] + coin_w < 0) && object_idx[0] != 3)
             {
                 if (coin_collided[i] && coin_x[i] + coin_w > 0)
                 {
@@ -801,29 +829,64 @@ void iAnimSprites()
             }
         }
 
-        /*
-        // placing the coins for the spring
-        if(is_spring_available){
-            for(int i =  0; i<8; i++){
-                if(!coin_spring_active[i]){
+        if (is_spring_allowed == 0)
+        {
+            is_spring_coin_available = 1;
+            // Render the coins for the spring
+
+            for (int i = 0; i < MAX_SPRING_COIN; i++)
+            {
+                if (!coin_spring_active[i] && object_x[0] > 400)
+                {
                     coin_spring_active[i] = 1;
-                    if(i==0){
-                        coin_spring_x[i] = object_x[0]  + 40;
-                    }else{
-                        coin_spring_x[i] = coin_spring_x[i-1]  + 30;
+                    if (i == 0)
+                    {
+                        coin_spring_x[i] = object_x[0] + 45;
                     }
-                    coin_spring_y[i] = runner_y_initial + 30;
-                }else{
+                    else
+                    {
+                        coin_spring_x[i] = coin_spring_x[i - 1] + 75;
+                    }
+                    coin_spring_y[i] = runner_y_initial + 40 + 100 * (i + 1) - 0.5 * 25 * (i + 1) * (i + 1);
+                    if (i == MAX_SPRING_COIN - 1)
+                    {
+                        last_spring_coin_x = coin_spring_x[i];
+                    }
+                }
+            }
+        }
+        if (is_spring_coin_available)
+        {
+
+            last_spring_coin_x -= scene_scroll_velocity;
+            for (int i = 0; i < MAX_SPRING_COIN; i++)
+            {
+                if (coin_spring_active[i] && check_collision_with_spring_coin(runner.x, runner.y, 407.0 * runner_scalling, 443.0 * runner_scalling, coin_spring_x[i], coin_spring_y[i], coin_w, coin_h))
+                {
+                    coin_spring_active[i] = 0;
+                    coin_spring_collided[i] = 1;
+                    if (!is_dying)
+                        in_game_earned_coin++;
+                    if (is_sound_on)
+                    {
+                        // iPlaySound("assets/sound/coin_collect.wav", false, 50);
+                    }
+                }
+
+                if (coin_spring_active[i])
+                {
                     coin_spring_x[i] -= scene_scroll_velocity;
                 }
             }
-            if(coin_spring_x[7]+coin_w<0){
-                is_spring_available = 0;
-                for(int i = 0; i<8;i++){
+            if (last_spring_coin_x <= 0)
+            {
+                for (int i = 0; i < MAX_SPRING_COIN; i++)
+                {
                     coin_spring_active[i] = 0;
                 }
+                is_spring_coin_available = 0;
             }
-        }*/
+        }
 
         if (currentPage == PLAY && game_running)
         {
@@ -842,7 +905,6 @@ void iAnimSprites()
                     is_jumping = 0;
                     is_sliding = 0;
                     is_super_jumping = 0;
-                    is_spring_available = 1;
                     runner.currentFrame = 0;
                     jump_time = 0.0f;
                 }
@@ -1106,7 +1168,7 @@ void iDraw()
                     }
                 }
 
-                for (int i = 0; i < 8; i++)
+                for (int i = 0; i < MAX_SPRING_COIN; i++)
                 {
                     if (coin_spring_active[i] && coin_spring_x[i] != 0 && coin_spring_y[i] != 0)
                     {
@@ -1127,7 +1189,7 @@ void iDraw()
                 char in_game_score_str[10];
                 sprintf(in_game_score_str, "%d", in_game_score);
                 iTextAdvanced(875 + 40, 545, in_game_score_str, 0.1, 1, GLUT_STROKE_MONO_ROMAN); // for score
-                if (running_sound_active == 0 && !is_jumping && !is_super_jumping && !is_sliding && is_sound_on)
+                if (running_sound_active == 0 && !is_jumping && !is_super_jumping && !is_sliding && !is_spring_jumping && is_sound_on)
                 {
                     iResumeSound(running_sound);
                     running_sound_active = 1;
@@ -1330,7 +1392,7 @@ void iDraw()
 
         // All Rows of Table Body
 
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 7; i++)
         {
             if (leaderboard[i].username == NULL || leaderboard[i].score <= 0)
                 break;
@@ -1684,6 +1746,10 @@ void iMouse(int button, int state, int mx, int my)
                 {
                     coin_active[i] = coin_collided[i] = coin_x[i] = coin_y[i] = 0;
                 }
+                is_spring_allowed = 1;
+                memset(coin_spring_x, 0, sizeof(coin_spring_x));
+                memset(coin_spring_y, 0, sizeof(coin_spring_y));
+                memset(coin_spring_active, 0, sizeof(coin_spring_active));
                 memset(coin_x, 0, sizeof(coin_x));
                 memset(coin_y, 0, sizeof(coin_y));
                 memset(paused_btn_highlight, 0, sizeof(paused_btn_highlight));
@@ -1706,6 +1772,12 @@ void iMouse(int button, int state, int mx, int my)
                 is_game_over = 0;
                 in_game_score = 0;
                 in_game_earned_coin = 0;
+                is_spring_allowed = 1;
+                memset(coin_spring_x, 0, sizeof(coin_spring_x));
+                memset(coin_spring_y, 0, sizeof(coin_spring_y));
+                memset(coin_spring_active, 0, sizeof(coin_spring_active));
+
+                memset(coin_y, 0, sizeof(coin_y));
                 memset(coin_x, 0, sizeof(coin_x));
                 memset(coin_y, 0, sizeof(coin_y));
                 memset(gameover_btn_highlight, 0, sizeof(gameover_btn_highlight));
@@ -1723,6 +1795,10 @@ void iMouse(int button, int state, int mx, int my)
                 is_game_over = 0;
                 in_game_score = 0;
                 in_game_earned_coin = 0;
+                is_spring_allowed = 1;
+                memset(coin_spring_x, 0, sizeof(coin_spring_x));
+                memset(coin_spring_y, 0, sizeof(coin_spring_y));
+                memset(coin_spring_active, 0, sizeof(coin_spring_active));
                 memset(coin_x, 0, sizeof(coin_x));
                 memset(coin_y, 0, sizeof(coin_y));
                 memset(gameover_btn_highlight, 0, sizeof(gameover_btn_highlight));
@@ -1785,23 +1861,23 @@ void iKeyboard(unsigned char key)
             {
                 is_paused = !is_paused;
             }
-            if (!is_jumping && !is_super_jumping && !is_sliding && !is_dying)
+            if (!is_jumping && !is_super_jumping && !is_sliding && !is_spring_jumping && !is_dying)
             {
 
-                if (key == 'w' && !is_spring_jumping)
+                if (key == 'w')
                 {
                     is_jumping = 1;
                     runner.currentFrame = 0;
                     jump_time = 0.0f;
                 }
-                if (key == 'd' && !is_spring_jumping)
+                if (key == 'd')
                 {
                     is_super_jumping = 1;
                     runner.currentFrame = 0;
                     jump_time = 0.0f;
                 }
 
-                if (key == 's' && !is_spring_jumping)
+                if (key == 's')
                 {
                     is_sliding = 1;
                     runner.currentFrame = 0;
