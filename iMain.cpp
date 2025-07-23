@@ -52,6 +52,7 @@ int coin_required_to_unlock = 0;
 int is_sound_on = 1;
 int sound_bg_chnl;
 int running_sound;
+int coin_collecting_sound;
 int running_sound_active = 0;
 
 enum page_status currentPage; // To track which page is being visited currently
@@ -141,7 +142,7 @@ int coin_collided[MAX_COIN];
 int coin_x[MAX_COIN];
 int coin_y[MAX_COIN];
 int coin_w = 45 * 0.5, coin_h = 45 * 0.5;
-int scene_unlocking_coin[NUM_OF_SCENE - 1] = {10, 20};
+int scene_unlocking_coin[NUM_OF_SCENE - 1] = {100, 200};
 
 int coin_spring_active[MAX_SPRING_COIN] = {0};
 int coin_spring_collided[MAX_SPRING_COIN] = {0};
@@ -802,7 +803,7 @@ void iAnimSprites()
                         coin_x[i] = object_x[1] + rand() % (600 - 100 + 1) + 100;
                         if (i >= 1)
                         {
-                            while (abs(coin_x[i] - coin_x[i - 1]) <= 70)
+                            while (abs(coin_x[i] - coin_x[i - 1]) <= 70 || abs(coin_x[i] - coin_x[0]) <= 70)
                             {
                                 coin_x[i] = object_x[1] + rand() % (600 - 100 + 1) + 100;
                             }
@@ -867,9 +868,10 @@ void iAnimSprites()
                     coin_spring_collided[i] = 1;
                     if (!is_dying)
                         in_game_earned_coin++;
-                    if (is_sound_on)
+
+                    if (is_sound_on && !is_spring_jumping)
                     {
-                        // iPlaySound("assets/sound/coin_collect.wav", false, 50);
+                        iPlaySound("assets/sound/coin_collect.wav", false, 50);
                     }
                 }
 
@@ -907,6 +909,10 @@ void iAnimSprites()
                     is_super_jumping = 0;
                     runner.currentFrame = 0;
                     jump_time = 0.0f;
+                    if (is_sound_on)
+                    {
+                        iPlaySound("assets/sound/spring.wav", false, 50);
+                    }
                 }
             }
             if (cond)
@@ -1089,6 +1095,7 @@ void iDraw()
             draw_home_page_button(i, home_option_color[i], home_option_labels[i]);
         }
         iPauseSound(running_sound);
+        iPauseSound(coin_collecting_sound);
     }
     else if (currentPage == PLAY)
     {
@@ -1973,6 +1980,7 @@ int main(int argc, char *argv[])
     iInitializeSound();
     sound_bg_chnl = iPlaySound("assets/sound/bg.wav", true, 50);
     running_sound = iPlaySound("assets/sound/running.wav", true, 50);
+    coin_collecting_sound = iPlaySound("assets/sound/coin_collect.wav", false, 50);
     iInitialize(SCRN_WIDTH, SCRN_HEIGHT, "Obstacle Runner");
     return 0;
 }
