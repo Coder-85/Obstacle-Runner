@@ -977,6 +977,11 @@ void iAnimSprites()
                     {
                         iPlaySound("assets/sound/coin_collect.wav", false, 50);
                     }
+                    
+                    if (runner.y > runner_y_initial) {
+                        runner.y -= 10;
+                        if (runner.y < runner_y_initial) runner.y = runner_y_initial;
+                    }
                 }
                 else if (object_active[i] && object_idx[i] != 3)
                 {
