@@ -136,6 +136,8 @@ int is_spring_allowed = 1;
 int is_spring_coin_available = 0;
 int last_spring_coin_x = 0;
 
+int actual_obj_of_question = 0;
+
 // Coin variables
 int coin_active[MAX_COIN];
 int coin_collided[MAX_COIN];
@@ -157,9 +159,10 @@ Image stone_img;
 Image spring_img;
 Image mine_img;
 Image broom_img;
-Image skeleton;
-Image skull;
-Image question;
+Image skeleton_img;
+Image skull_img;
+Image question_img;
+Image mysterious_coin_img;
 
 // Objects Sprite
 Sprite objects[MAX_OBJECT];
@@ -445,15 +448,33 @@ void initialize_object_sprites()
         }
         else if (object_idx[i] == 6)
         {
-            iChangeSpriteFrames(&objects[i], &skeleton, 1);
+            iChangeSpriteFrames(&objects[i], &skeleton_img, 1);
         }
         else if (object_idx[i] == 7)
         {
-            iChangeSpriteFrames(&objects[i], &skull, 1);
+            iChangeSpriteFrames(&objects[i], &skull_img, 1);
         }
         else if (object_idx[i] == 8)
         {
-            iChangeSpriteFrames(&objects[i], &question, 1);
+            if ((object_x[i] - runner.x) > 160)
+            {
+                iChangeSpriteFrames(&objects[i], &question_img, 1);
+            }
+            else
+            {
+                if (actual_obj_of_question == 0)
+                {
+                    iChangeSpriteFrames(&objects[i], &box_img, 1);
+                }
+                else if (actual_obj_of_question == 1)
+                {
+                    iChangeSpriteFrames(&objects[i], &mine_img, 1);
+                }
+                else if (actual_obj_of_question == 2)
+                {
+                    iChangeSpriteFrames(&objects[i], &mysterious_coin_img, 1);
+                }
+            }
         }
     }
 }
@@ -479,12 +500,15 @@ void load_images()
     iLoadImage(&broom_img, "assets/img/objects/killer/broom.png");
     iScaleImage(&broom_img, 1.3f);
 
-    iLoadImage(&skeleton, "assets/img/objects/killer/skeleton.png");
-    iScaleImage(&skeleton, 0.45f);
-    iLoadImage(&skull, "assets/img/objects/killer/skull.png");
-    iScaleImage(&skull, 0.37f);
-    iLoadImage(&question, "assets/img/objects/killer/question.png");
-    iScaleImage(&question, 1.5f);
+    iLoadImage(&skeleton_img, "assets/img/objects/killer/skeleton.png");
+    iScaleImage(&skeleton_img, 0.45f);
+    iLoadImage(&skull_img, "assets/img/objects/killer/skull.png");
+    iScaleImage(&skull_img, 0.37f);
+    iLoadImage(&question_img, "assets/img/objects/killer/question.png");
+    iScaleImage(&question_img, 0.5);
+
+    iLoadImage(&mysterious_coin_img, "assets/img/objects/coin/mysterious_coin.png");
+    iScaleImage(&mysterious_coin_img, 0.25);
 
     for (int i = 0; i < 3; i++)
     {
@@ -728,6 +752,11 @@ void iAnimSprites()
                     }
                 }
 
+                if (object_idx[i] == 8)
+                {
+                    actual_obj_of_question = rand() % 3; // 0-> Box, 1-> Mine, 2-> Coin
+                }
+
                 if (object_idx[i] == 0)
                 {
                     object_w[i] = 45 * 1.5, object_h[i] = 35 * 1.5;
@@ -762,7 +791,7 @@ void iAnimSprites()
                 }
                 else if (object_idx[i] == 8)
                 {
-                    object_w[i] = 45 * 1.5, object_h[i] = 35 * 1.5;
+                    object_w[i] = 200 * 0.5, object_h[i] = 277 * 0.5;
                 }
 
                 if (i == 0)
@@ -795,6 +824,10 @@ void iAnimSprites()
             else
             {
                 object_x[i] -= scene_scroll_velocity;
+                if (object_idx[i] == 8 && (object_x[i] - runner.x < 160))
+                {
+                    initialize_object_sprites();
+                }
             }
         }
 
@@ -814,7 +847,7 @@ void iAnimSprites()
                 {
 
                     int on_top = rand() % 2;
-                    if (i == MAX_COIN - 1 && on_top && object_x[0] > 1000 && object_idx[0] != 3)
+                    if (i == MAX_COIN - 1 && on_top && object_x[0] > 1000 && object_idx[0] != 3 && object_idx[i] != 8)
                     {
                         coin_active[i] = 1;
                         int obj_idx = 0;
@@ -921,7 +954,7 @@ void iAnimSprites()
             bool cond = false;
             for (int i = 0; i < MAX_OBJECT; i++)
             {
-                if (object_active[i] && object_idx[i] != 3)
+                if (object_active[i] && object_idx[i] != 3 && actual_obj_of_question != 2)
                 {
                     cond = cond || iCheckCollision(&runner, &objects[i]);
                 }
@@ -937,6 +970,16 @@ void iAnimSprites()
                     if (is_sound_on)
                     {
                         iPlaySound("assets/sound/spring.wav", false, 50);
+                    }
+                }
+
+                if (object_idx[i] == 8 && actual_obj_of_question == 2 && iCheckCollision(&runner, &objects[i]))
+                {
+                    in_game_earned_coin += 6;
+                    object_active[i] = 0;
+                    if (is_sound_on)
+                    {
+                        iPlaySound("assets/sound/coin_collect.wav", false, 50);
                     }
                 }
             }
