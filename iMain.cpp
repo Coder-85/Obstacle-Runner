@@ -954,7 +954,16 @@ void iAnimSprites()
             bool cond = false;
             for (int i = 0; i < MAX_OBJECT; i++)
             {
-                if (object_active[i] && object_idx[i] != 3 && actual_obj_of_question != 2)
+if (object_idx[i] == 8 && actual_obj_of_question == 2 && iCheckCollision(&runner, &objects[i]))
+                {
+                    in_game_earned_coin += 6;
+                    object_active[i] = 0;
+                    if (is_sound_on)
+                    {
+                        iPlaySound("assets/sound/coin_collect.wav", false, 50);
+                    }
+                }
+                else                 if (object_active[i] && object_idx[i] != 3 && actual_obj_of_question != 2)
                 {
                     cond = cond || iCheckCollision(&runner, &objects[i]);
                 }
