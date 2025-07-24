@@ -167,17 +167,6 @@ Image mysterious_coin_img;
 // Objects Sprite
 Sprite objects[MAX_OBJECT];
 
-void get_the_selected_scene_idx()
-{
-    for (int i = 0; i < NUM_OF_SCENE; i++)
-    {
-        if (selected_status[i] == 1)
-        {
-            selected_scene_idx = i;
-            break;
-        }
-    }
-}
 int cmp(const void *a, const void *b)
 {
     return ((struct leaderboard *)a)->score < ((struct leaderboard *)b)->score;
@@ -295,10 +284,8 @@ void load_scene_status()
     {
         fscanf(fp, "%d ", &unlock_status[i]);
     }
-    for (int i = 0; i < NUM_OF_SCENE; i++)
-    {
-        fscanf(fp, "%d ", &selected_status[i]);
-    }
+
+    fscanf(fp, "%d", &selected_scene_idx);
     fclose(fp);
 }
 
@@ -314,10 +301,8 @@ void reset_scene_status()
         fprintf(fp, "%d ", unlock_status[i]);
     }
     fprintf(fp, "\n");
-    for (int i = 0; i < NUM_OF_SCENE; i++)
-    {
-        fprintf(fp, "%d ", selected_status[i]);
-    }
+
+    fprintf(fp, "%d", selected_scene_idx);
     fprintf(fp, "\n");
     fclose(fp);
     close_callback();
@@ -712,18 +697,7 @@ void iAnimSprites()
             if (!object_active[i] || object_x[i] + object_w[i] < 0)
             {
                 int highest_obj;
-                if (selected_scene_idx == 0)
-                {
-                    highest_obj = 3;
-                }
-                else if (selected_scene_idx == 1)
-                {
-                    highest_obj = 6;
-                }
-                else if (selected_scene_idx == 2)
-                {
-                    highest_obj = 9;
-                }
+                highest_obj = 3*(selected_scene_idx + 1);
                 object_idx[i] = rand() % highest_obj;
 
                 if (i == 0 && !is_spring_allowed && object_idx[0] == 3)
@@ -963,7 +937,7 @@ if (object_idx[i] == 8 && actual_obj_of_question == 2 && iCheckCollision(&runner
                         iPlaySound("assets/sound/coin_collect.wav", false, 50);
                     }
                 }
-                else                 if (object_active[i] && object_idx[i] != 3 && actual_obj_of_question != 2)
+                else if (object_active[i] && object_idx[i] != 3)
                 {
                     cond = cond || iCheckCollision(&runner, &objects[i]);
                 }
@@ -979,16 +953,6 @@ if (object_idx[i] == 8 && actual_obj_of_question == 2 && iCheckCollision(&runner
                     if (is_sound_on)
                     {
                         iPlaySound("assets/sound/spring.wav", false, 50);
-                    }
-                }
-
-                if (object_idx[i] == 8 && actual_obj_of_question == 2 && iCheckCollision(&runner, &objects[i]))
-                {
-                    in_game_earned_coin += 6;
-                    object_active[i] = 0;
-                    if (is_sound_on)
-                    {
-                        iPlaySound("assets/sound/coin_collect.wav", false, 50);
                     }
                 }
             }
@@ -1421,7 +1385,7 @@ void iDraw()
         for (int i = 0; i < NUM_OF_SCENE; i++)
         {
             char scene_status[20];
-            if (unlock_status[i] == 1 && selected_status[i] == 1)
+            if (unlock_status[i] == 1 && selected_scene_idx == i)
             {
                 strcpy(scene_status, "Selected");
                 iSetColor(2, 168, 77);
@@ -1773,10 +1737,8 @@ void iMouse(int button, int state, int mx, int my)
                 int y2 = y1 + 192;
                 if ((mx >= x1 && mx <= x2) && (my >= y1 && my <= y2) && unlock_status[i] == 1 && !is_modal_showing)
                 {
-                    memset(selected_status, 0, sizeof(selected_status));
-                    selected_status[i] = 1;
+                    selected_scene_idx = i;
                     reset_scene_status();
-                    get_the_selected_scene_idx();
                 }
                 else if ((mx >= x1 && mx <= x2) && (my >= y1 && my <= y2) && unlock_status[i] == 0)
                 {
@@ -2063,7 +2025,6 @@ int main(int argc, char *argv[])
     load_scene_status();
     load_images();
     initialize_sprites();
-    get_the_selected_scene_idx();
     iSetTimer(6, iAnimSprites);
     iSetTimer(100, iAnimCaret); // Add caret animation timer
 
