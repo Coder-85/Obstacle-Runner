@@ -79,7 +79,6 @@ int sprite_y = 173;
 
 // Game variables
 int unlock_status[NUM_OF_SCENE];
-int selected_status[NUM_OF_SCENE];
 int game_running = 0;
 int is_dying = 0;
 int is_dying_counter = 0;
@@ -196,6 +195,27 @@ void save_game()
     }
     // Next line with jump_time, is_jumping, is_super_jumping, is_sliding
     fprintf(fp, "%f %d %d %d\n", jump_time, is_jumping, is_super_jumping, is_sliding);
+    fprintf(fp, "%d %d %d %d %d\n", is_spring_allowed, is_spring_coin_available, last_spring_coin_x, actual_obj_of_question, spring_coin_initial_x);
+    
+    for (int i = 0; i < MAX_SPRING_COIN; i++)
+    {
+        fprintf(fp, "%d", coin_spring_active[i]);
+    }
+    fprintf(fp, "\n");
+    for (int i = 0; i < MAX_SPRING_COIN; i++)
+    {
+        fprintf(fp, "%d", coin_spring_collided[i]);
+    }
+    fprintf(fp, "\n");
+    for (int i = 0; i < MAX_SPRING_COIN; i++)
+    {
+        fprintf(fp, "%d", coin_spring_x[i]);
+    }
+    fprintf(fp, "\n");
+    for (int i = 0; i < MAX_SPRING_COIN; i++)
+    {
+        fprintf(fp, "%d", coin_spring_y[i]);
+    }
     fclose(fp);
 }
 
@@ -270,6 +290,25 @@ void load_game_data()
         fscanf(fp, "%d %d %d %d", &coin_active[i], &coin_collided[i], &coin_x[i], &coin_y[i]);
     }
     fscanf(fp, "%f %d %d %d", &jump_time, &is_jumping, &is_super_jumping, &is_sliding);
+    fscanf(fp, "%d %d %d %d %d", &is_spring_allowed, &is_spring_coin_available, &last_spring_coin_x, &actual_obj_of_question, &spring_coin_initial_x);
+
+    for (int i = 0; i < MAX_SPRING_COIN; i++) 
+    {
+        fscanf(fp, "%d", &coin_spring_active[i]);
+    }
+    for (int i = 0; i < MAX_SPRING_COIN; i++) 
+    {
+        fscanf(fp, "%d", &coin_spring_collided[i]);
+    }
+    for (int i = 0; i < MAX_SPRING_COIN; i++) 
+    {
+        fscanf(fp, "%d", &coin_spring_x[i]);
+    }
+    for (int i = 0; i < MAX_SPRING_COIN; i++) 
+    {
+        fscanf(fp, "%d", &coin_spring_y[i]);
+    }
+
     fclose(fp);
 }
 
@@ -295,6 +334,7 @@ void reset_scene_status()
     if (fp == NULL)
     {
         fprintf(stderr, "Error while opening scene_status.txt");
+        exit(-1);
     }
     for (int i = 0; i < NUM_OF_SCENE; i++)
     {
@@ -374,7 +414,6 @@ void draw_home_page_button(int idx, int highlight, const char *label)
 
 void loadCoinData()
 {
-
     iShowLoadedImage(820, 570, &home_coin_img);
     // Print Total Coin
     char total_coins[100];
@@ -1648,6 +1687,15 @@ void iMouse(int button, int state, int mx, int my)
                         memset(coin_y, 0, sizeof(coin_y));
                         memset(coin_active, 0, sizeof(coin_active));
                         memset(coin_collided, 0, sizeof(coin_collided));
+                        memset(coin_spring_active, 0, sizeof(coin_spring_active));
+                        memset(coin_spring_collided, 0, sizeof(coin_spring_collided));
+                        memset(coin_spring_x, 0, sizeof(coin_spring_x));
+                        memset(coin_spring_y, 0, sizeof(coin_spring_y));
+                        is_spring_allowed = 0;
+                        is_spring_coin_available = 0;
+                        last_spring_coin_x = 0;
+                        actual_obj_of_question = 0;
+                        spring_coin_initial_x = 0;
                         in_game_score = 0;
                         in_game_earned_coin = 0;
                         is_jumping = 0;
