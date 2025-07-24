@@ -157,6 +157,9 @@ Image stone_img;
 Image spring_img;
 Image mine_img;
 Image broom_img;
+Image skeleton;
+Image skull;
+Image question;
 
 // Objects Sprite
 Sprite objects[MAX_OBJECT];
@@ -440,6 +443,18 @@ void initialize_object_sprites()
         {
             iChangeSpriteFrames(&objects[i], &broom_img, 1);
         }
+        else if (object_idx[i] == 6)
+        {
+            iChangeSpriteFrames(&objects[i], &skeleton, 1);
+        }
+        else if (object_idx[i] == 7)
+        {
+            iChangeSpriteFrames(&objects[i], &skull, 1);
+        }
+        else if (object_idx[i] == 8)
+        {
+            iChangeSpriteFrames(&objects[i], &question, 1);
+        }
     }
 }
 
@@ -463,6 +478,13 @@ void load_images()
     iScaleImage(&mine_img, 1.0f);
     iLoadImage(&broom_img, "assets/img/objects/killer/broom.png");
     iScaleImage(&broom_img, 1.3f);
+
+    iLoadImage(&skeleton, "assets/img/objects/killer/skeleton.png");
+    iScaleImage(&skeleton, 0.45f);
+    iLoadImage(&skull, "assets/img/objects/killer/skull.png");
+    iScaleImage(&skull, 0.37f);
+    iLoadImage(&question, "assets/img/objects/killer/question.png");
+    iScaleImage(&question, 1.5f);
 
     for (int i = 0; i < 3; i++)
     {
@@ -732,12 +754,15 @@ void iAnimSprites()
                 }
                 else if (object_idx[i] == 6)
                 {
+                    object_w[i] = 200 * 0.45, object_h[i] = 449 * 0.45;
                 }
                 else if (object_idx[i] == 7)
                 {
+                    object_w[i] = 195 * 0.37, object_h[i] = 140 * 0.37;
                 }
                 else if (object_idx[i] == 8)
                 {
+                    object_w[i] = 45 * 1.5, object_h[i] = 35 * 1.5;
                 }
 
                 if (i == 0)
