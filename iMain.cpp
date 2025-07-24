@@ -946,6 +946,12 @@ void iAnimSprites()
                 is_super_jumping = 0;
                 is_sliding = 0;
                 is_dying = 1;
+
+                if (is_dying_counter == 0)
+                {
+                    runner.currentFrame = 0;
+                    iAnimateSpriteWithOffset(&runner);
+                }
                 scene_scroll_velocity = 0;
                 for (int i = 0; i < LEADERBOARD_SIZE; i++)
                 {
@@ -981,7 +987,7 @@ void iAnimSprites()
         {
             iPauseSound(running_sound);
             is_dying_counter++;
-            if (is_dying_counter == 8)
+            if (is_dying_counter == 64)
             {
                 scene_scroll_velocity = 15.f;
                 is_dying = 0;
@@ -1010,7 +1016,10 @@ void iAnimSprites()
             in_game_score += 2;
         }
     }
-    iAnimateSpriteWithOffset(&runner);
+    if (is_dying_counter <= 15)
+    {
+        iAnimateSpriteWithOffset(&runner);
+    }
 }
 
 void iAnimCaret()
