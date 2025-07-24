@@ -967,7 +967,7 @@ void iAnimSprites()
             bool cond = false;
             for (int i = 0; i < MAX_OBJECT; i++)
             {
-if (object_idx[i] == 8 && actual_obj_of_question == 2 && iCheckCollision(&runner, &objects[i]))
+                if (object_idx[i] == 8 && actual_obj_of_question == 2 && iCheckCollision(&runner, &objects[i]))
                 {
                     in_game_earned_coin += 6;
                     object_active[i] = 0;
