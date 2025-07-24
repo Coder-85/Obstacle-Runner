@@ -40,6 +40,7 @@ int total_coin = 0;
 struct leaderboard leaderboard[LEADERBOARD_SIZE];
 int read_save_files;
 int selected_scene_idx = 0;
+int saved_game_scene_idx;
 
 // scene page modal variable
 int is_modal_showing = 0;
@@ -325,6 +326,7 @@ void load_scene_status()
     }
 
     fscanf(fp, "%d", &selected_scene_idx);
+    saved_game_scene_idx = selected_scene_idx;
     fclose(fp);
 }
 
@@ -1725,6 +1727,7 @@ void iMouse(int button, int state, int mx, int my)
                             initialize_object_sprites();
                             start_btn_highlight = 0;
                             read_save_files = 0;
+                            selected_scene_idx = saved_game_scene_idx;
                             FILE *fp = fopen("data/game_state.txt", "w");
                             if (fp != NULL)
                             {
