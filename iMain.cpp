@@ -1,3 +1,4 @@
+
 #include "iGraphics.h"
 #include "iSound.h"
 #include <time.h>
@@ -166,6 +167,28 @@ Image mysterious_coin_img;
 
 // Objects Sprite
 Sprite objects[MAX_OBJECT];
+
+int biased_rand(int selected_scene_idx) 
+{
+    int range = (selected_scene_idx+1) * 3;
+    int weights[range];
+    int total_weight = 0;
+    for (int i = 0; i < range; ++i) 
+    {
+        if (i == 1 || i == 8) weights[i] = 3;
+        else weights[i] = 5;
+        total_weight += weights[i];
+    }
+
+    int r = rand() % total_weight;
+    for (int i = 0; i < range; ++i) 
+    {
+        if (r < weights[i]) return i;
+        r -= weights[i];
+    }
+
+    return range - 1;
+}
 
 int cmp(const void *a, const void *b)
 {
@@ -721,7 +744,6 @@ void iAnimSprites()
             runner.currentFrame = 0;
         }
         iSetSpritePosition(&runner, runner.x, y);
-        // printf("(%f, %d, %f) ", jump_time, runner.x, y);
     }
 
     if (currentPage == PLAY && game_running && (is_sliding || is_jumping || is_super_jumping || is_spring_jumping))
@@ -739,13 +761,13 @@ void iAnimSprites()
             {
                 int highest_obj;
                 highest_obj = 3*(selected_scene_idx + 1);
-                object_idx[i] = rand() % highest_obj;
+                object_idx[i] = biased_rand(selected_scene_idx);
 
                 if (i == 0 && !is_spring_allowed && object_idx[0] == 3)
                 {
                     while (object_idx[i] == 3)
                     {
-                        object_idx[i] = rand() % highest_obj;
+                        object_idx[i] = biased_rand(selected_scene_idx);
                     }
                     is_spring_allowed = 1;
                 }
@@ -763,7 +785,7 @@ void iAnimSprites()
                 {
                     while (object_idx[i] == 3)
                     {
-                        object_idx[i] = rand() % highest_obj;
+                        object_idx[i] = biased_rand(selected_scene_idx);
                     }
                 }
 
