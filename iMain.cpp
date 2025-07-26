@@ -535,7 +535,7 @@ void initialize_object_sprites()
 
 void load_images()
 {
-    // Load Coin Img
+    // Load Coin Img;
     iLoadImage(&home_coin_img, "assets/img/objects/coin/coin_small.png");
     iScaleImage(&home_coin_img, 0.5);
     iLoadImage(&game_score_img, "assets/img/objects/medal/score.png");
