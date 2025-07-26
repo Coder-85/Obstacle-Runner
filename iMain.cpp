@@ -168,14 +168,15 @@ Image mysterious_coin_img;
 // Objects Sprite
 Sprite objects[MAX_OBJECT];
 
-int biased_rand(int selected_scene_idx) 
+int biased_rand(int selected_scene_idx, int discarded_obj) 
 {
     int range = (selected_scene_idx+1) * 3;
     int weights[range];
     int total_weight = 0;
     for (int i = 0; i < range; ++i) 
     {
-        if (i == 1 || i == 8) weights[i] = 3;
+        if (i == discarded_obj) weights[i] = 0;
+        else if (i == 1 || i == 8) weights[i] = 3;
         else weights[i] = 5;
         total_weight += weights[i];
     }
@@ -759,16 +760,11 @@ void iAnimSprites()
         {
             if (!object_active[i] || object_x[i] + object_w[i] < 0)
             {
-                int highest_obj;
-                highest_obj = 3*(selected_scene_idx + 1);
-                object_idx[i] = biased_rand(selected_scene_idx);
+                object_idx[i] = biased_rand(selected_scene_idx, -1);
 
                 if (i == 0 && !is_spring_allowed && object_idx[0] == 3)
                 {
-                    while (object_idx[i] == 3)
-                    {
-                        object_idx[i] = biased_rand(selected_scene_idx);
-                    }
+                    object_idx[i] = biased_rand(selected_scene_idx, 3);
                     is_spring_allowed = 1;
                 }
                 else if (i == 0 && is_spring_allowed && object_idx[0] == 3)
@@ -783,10 +779,7 @@ void iAnimSprites()
 
                 if (i == 1)
                 {
-                    while (object_idx[i] == 3)
-                    {
-                        object_idx[i] = biased_rand(selected_scene_idx);
-                    }
+                    object_idx[i] = biased_rand(selected_scene_idx, 3);
                 }
 
                 if (object_idx[i] == 8)
@@ -882,12 +875,11 @@ void iAnimSprites()
                 }
                 else
                 {
-
                     int on_top = rand() % 2;
-                    if (i == MAX_COIN - 1 && on_top && object_x[0] > 1000 && object_idx[0] != 3 && object_idx[i] != 8)
+                    int obj_idx = 0;
+                    if (i == MAX_COIN - 1 && on_top && object_x[obj_idx] > 1000 && object_idx[obj_idx] != 3 && object_idx[obj_idx] != 8)
                     {
                         coin_active[i] = 1;
-                        int obj_idx = 0;
                         coin_x[i] = object_x[obj_idx] + (object_w[obj_idx] / 2) - (coin_w / 2);
                         coin_y[i] = object_y[obj_idx] + object_h[obj_idx] + 20; // 20 pixels above the object
                     }
@@ -895,14 +887,14 @@ void iAnimSprites()
                     {
                         coin_active[i] = 1;
                         coin_y[i] = runner_y_initial;
-                        coin_x[i] = object_x[1] + rand() % (600 - 100 + 1) + 100;
-                        if (i >= 1)
-                        {
-                            while (abs(coin_x[i] - coin_x[i - 1]) <= 70 || abs(coin_x[i] - coin_x[0]) <= 70)
-                            {
-                                coin_x[i] = object_x[1] + rand() % (600 - 100 + 1) + 100;
-                            }
-                        }
+                        int min_x = object_x[1] + 100;
+                        int max_x = object_x[1] + 600;
+                        int spacing = 75;
+                        if (i == 0)
+                            coin_x[i] = min_x + (rand() % (max_x - min_x + 1));
+                        else
+                            coin_x[i] = min_x + (i * spacing);
+                        if (coin_x[i] > max_x) coin_x[i] = max_x - (i * spacing);
                     }
                     coin_collided[i] = 0;
                 }
