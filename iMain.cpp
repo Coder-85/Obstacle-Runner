@@ -168,23 +168,27 @@ Image mysterious_coin_img;
 // Objects Sprite
 Sprite objects[MAX_OBJECT];
 
-int biased_rand(int selected_scene_idx, int discarded_obj) 
+int biased_rand(int selected_scene_idx, int discarded_obj)
 {
-    int range = (selected_scene_idx+1) * 3;
+    int range = (selected_scene_idx + 1) * 3;
     int weights[range];
     int total_weight = 0;
-    for (int i = 0; i < range; ++i) 
+    for (int i = 0; i < range; ++i)
     {
-        if (i == discarded_obj) weights[i] = 0;
-        else if (i == 1 || i == 8) weights[i] = 3;
-        else weights[i] = 5;
+        if (i == discarded_obj)
+            weights[i] = 0;
+        else if (i == 1 || i == 8)
+            weights[i] = 3;
+        else
+            weights[i] = 5;
         total_weight += weights[i];
     }
 
     int r = rand() % total_weight;
-    for (int i = 0; i < range; ++i) 
+    for (int i = 0; i < range; ++i)
     {
-        if (r < weights[i]) return i;
+        if (r < weights[i])
+            return i;
         r -= weights[i];
     }
 
@@ -221,7 +225,7 @@ void save_game()
     // Next line with jump_time, is_jumping, is_super_jumping, is_sliding
     fprintf(fp, "%f %d %d %d\n", jump_time, is_jumping, is_super_jumping, is_sliding);
     fprintf(fp, "%d %d %d %d %d\n", is_spring_allowed, is_spring_coin_available, last_spring_coin_x, actual_obj_of_question, spring_coin_initial_x);
-    
+
     for (int i = 0; i < MAX_SPRING_COIN; i++)
     {
         fprintf(fp, "%d", coin_spring_active[i]);
@@ -317,19 +321,19 @@ void load_game_data()
     fscanf(fp, "%f %d %d %d", &jump_time, &is_jumping, &is_super_jumping, &is_sliding);
     fscanf(fp, "%d %d %d %d %d", &is_spring_allowed, &is_spring_coin_available, &last_spring_coin_x, &actual_obj_of_question, &spring_coin_initial_x);
 
-    for (int i = 0; i < MAX_SPRING_COIN; i++) 
+    for (int i = 0; i < MAX_SPRING_COIN; i++)
     {
         fscanf(fp, "%d", &coin_spring_active[i]);
     }
-    for (int i = 0; i < MAX_SPRING_COIN; i++) 
+    for (int i = 0; i < MAX_SPRING_COIN; i++)
     {
         fscanf(fp, "%d", &coin_spring_collided[i]);
     }
-    for (int i = 0; i < MAX_SPRING_COIN; i++) 
+    for (int i = 0; i < MAX_SPRING_COIN; i++)
     {
         fscanf(fp, "%d", &coin_spring_x[i]);
     }
-    for (int i = 0; i < MAX_SPRING_COIN; i++) 
+    for (int i = 0; i < MAX_SPRING_COIN; i++)
     {
         fscanf(fp, "%d", &coin_spring_y[i]);
     }
@@ -894,7 +898,8 @@ void iAnimSprites()
                             coin_x[i] = min_x + (rand() % (max_x - min_x + 1));
                         else
                             coin_x[i] = min_x + (i * spacing);
-                        if (coin_x[i] > max_x) coin_x[i] = max_x - (i * spacing);
+                        if (coin_x[i] > max_x)
+                            coin_x[i] = max_x - (i * spacing);
                     }
                     coin_collided[i] = 0;
                 }
@@ -949,7 +954,7 @@ void iAnimSprites()
             last_spring_coin_x -= scene_scroll_velocity;
             for (int i = 0; i < MAX_SPRING_COIN; i++)
             {
-                if (coin_spring_active[i] && check_collision_with_spring_coin(runner.x, runner.y, 407.0 * runner_scalling, 443.0 * runner_scalling, coin_spring_x[i], coin_spring_y[i], coin_w, coin_h))
+                if (coin_spring_active[i] && check_collision_with_spring_coin(runner.x, runner.y, 320.0 * runner_scalling, 415.0 * runner_scalling, coin_spring_x[i], coin_spring_y[i], coin_w, coin_h))
                 {
                     coin_spring_active[i] = 0;
                     coin_spring_collided[i] = 1;
@@ -991,10 +996,12 @@ void iAnimSprites()
                     {
                         iPlaySound("assets/sound/coin_collect.wav", false, 50);
                     }
-                    
-                    if (runner.y > runner_y_initial) {
+
+                    if (runner.y > runner_y_initial)
+                    {
                         runner.y -= 10;
-                        if (runner.y < runner_y_initial) runner.y = runner_y_initial;
+                        if (runner.y < runner_y_initial)
+                            runner.y = runner_y_initial;
                     }
                 }
                 else if (object_active[i] && object_idx[i] != 3)
@@ -1823,6 +1830,7 @@ void iMouse(int button, int state, int mx, int my)
             if (is_modal_showing && (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y && my <= btn_y + btn_h) && !can_be_unlocked)
             {
                 is_modal_showing = 0;
+                modal_btn_highlight = 0;
                 can_be_unlocked = 0;
             }
             else if (is_modal_showing && (mx >= btn_x && mx <= btn_x + btn_w && my >= btn_y && my <= btn_y + btn_h) && can_be_unlocked)
@@ -1831,6 +1839,7 @@ void iMouse(int button, int state, int mx, int my)
                 unlock_status[scene_idx_for_modal] = 1;
                 is_modal_showing = 0;
                 can_be_unlocked = 0;
+                modal_btn_highlight = 0;
                 reset_scene_status();
                 close_callback();
             }
@@ -1961,6 +1970,7 @@ void iKeyboard(unsigned char key)
             iSetSpritePosition(&runner, sprite_x, sprite_y);
             currentPage = HOME;
             is_modal_showing = 0;
+            modal_btn_highlight = 0;
         }
         break;
     // place your codes for other keys here
@@ -2027,9 +2037,11 @@ void iKeyboard(unsigned char key)
         }
         else
         {
-            iResumeSound(sound_bg_chnl);
+            if (currentPage != PLAY)
+            {
+                iResumeSound(sound_bg_chnl);
+            }
             is_sound_on = 1;
-            iResumeSound(running_sound);
             running_sound_active = 0;
         }
     }
