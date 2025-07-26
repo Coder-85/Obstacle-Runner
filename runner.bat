@@ -17,7 +17,7 @@ echo Using g++ from: %BASE_DIR%
 
 :: Compile the source file to an object file (with irrKlang include path)
 
-g++.exe -Wall -fexceptions -g -I. -IOpenGL\include -IOpenGL\include\SDL2 -c "%SOURCE_FILE%" -o obj\opengl.o
+g++.exe -Wall -fexceptions -g -I. -D_WIN32 -IOpenGL\include -IOpenGL\include\SDL2 -c "%SOURCE_FILE%" -o obj\opengl.o
 
 if %ERRORLEVEL% neq 0 (
    echo Compilation failed.

@@ -1207,6 +1207,19 @@ void iInitialize(int width = 500, int height = 500, const char *title = "iGraphi
     glutInitWindowSize(width, height);
     glutInitWindowPosition(10, 10);
     glutCreateWindow(title);
+#ifdef _WIN32
+    HWND hwnd = FindWindowA(NULL, "Obstacle Runner");
+    printf("Hello");
+    if (hwnd)
+    {
+        HICON hIcon = (HICON)LoadImageA(NULL, "assets/runner.ico", IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE | LR_SHARED);
+        if (hIcon)
+        {
+            SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+            SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+        }
+    }
+#endif
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
