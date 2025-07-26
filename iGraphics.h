@@ -1209,7 +1209,6 @@ void iInitialize(int width = 500, int height = 500, const char *title = "iGraphi
     glutCreateWindow(title);
 #ifdef _WIN32
     HWND hwnd = FindWindowA(NULL, "Obstacle Runner");
-    printf("Hello");
     if (hwnd)
     {
         HICON hIcon = (HICON)LoadImageA(NULL, "assets/runner.ico", IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE | LR_SHARED);
