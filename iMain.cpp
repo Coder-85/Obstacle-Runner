@@ -1973,12 +1973,10 @@ void iKeyboard(unsigned char key)
     {
         // Escape key
     case 27:
-        if (currentPage == LEADERBOARD || currentPage == SCENES)
+        if (currentPage == LEADERBOARD)
         {
             iSetSpritePosition(&runner, sprite_x, sprite_y);
             currentPage = HOME;
-            is_modal_showing = 0;
-            modal_btn_highlight = 0;
         }
         break;
     // place your codes for other keys here
@@ -2084,6 +2082,16 @@ void iKeyboard(unsigned char key)
     {
         iSetSpritePosition(&runner, sprite_x, sprite_y);
         currentPage = HOME;
+    }
+
+    if (currentPage == SCENES && !is_modal_showing && key == 27)
+    {
+        currentPage = HOME;
+    }
+    else if (currentPage == SCENES && is_modal_showing && key == 27)
+    {
+        is_modal_showing = 0;
+        modal_btn_highlight = 0;
     }
 }
 
