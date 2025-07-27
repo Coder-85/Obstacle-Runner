@@ -1825,7 +1825,7 @@ void iMouse(int button, int state, int mx, int my)
                     selected_scene_idx = i;
                     reset_scene_status();
                 }
-                else if ((mx >= x1 && mx <= x2) && (my >= y1 && my <= y2) && unlock_status[i] == 0)
+                else if ((mx >= x1 && mx <= x2) && (my >= y1 && my <= y2) && unlock_status[i] == 0 && !is_modal_showing)
                 {
                     scene_idx_for_modal = i;
                     is_modal_showing = 1;
