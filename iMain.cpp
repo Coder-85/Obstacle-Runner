@@ -1,4 +1,3 @@
-
 #include "iGraphics.h"
 #include "iSound.h"
 #include <time.h>
@@ -173,7 +172,7 @@ int biased_rand(int selected_scene_idx, int discarded_obj)
     int range = (selected_scene_idx + 1) * 3;
     int weights[range];
     int total_weight = 0;
-    for (int i = 0; i < range; ++i)
+    for (int i = 0; i < range; i++)
     {
         if (i == discarded_obj)
             weights[i] = 0;
@@ -185,7 +184,7 @@ int biased_rand(int selected_scene_idx, int discarded_obj)
     }
 
     int r = rand() % total_weight;
-    for (int i = 0; i < range; ++i)
+    for (int i = 0; i < range; i++)
     {
         if (r < weights[i])
             return i;
@@ -578,13 +577,22 @@ void iAnimateSpriteWithOffset(Sprite *sprite)
     if (!sprite || sprite->totalFrames <= 1 || !sprite->frames)
         return;
 
-    static float frame_timer = 0.0f;
-    const float dt = 1.f / 60.f;
-    const float frame_interval = 1.f / 20.f;
-    frame_timer += dt;
-    if (frame_timer < frame_interval)
+    static clock_t last_frame_time = 0;
+    const float target_frame_time = 1.f / 20.0f;
+    clock_t now = clock();
+    float elapsed = (float)(now - last_frame_time) / CLOCKS_PER_SEC;
+    if (elapsed < target_frame_time)
         return;
-    frame_timer = 0.0f;
+    if (elapsed > target_frame_time)
+        last_frame_time = now;
+    else
+    {
+        struct timespec ts;
+        ts.tv_sec = 0;
+        ts.tv_nsec = (long)((target_frame_time - elapsed) * 1e9);
+        nanosleep(&ts, NULL);
+        last_frame_time = clock();
+    }
 
     if (is_idling)
         sprite->currentFrame = (sprite->currentFrame + 1) % 10 + IDLE_FRAME_OFFSET;
