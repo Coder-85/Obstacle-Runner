@@ -1208,7 +1208,7 @@ void iInitialize(int width = 500, int height = 500, const char *title = "iGraphi
     glutInitWindowPosition(10, 10);
     glutCreateWindow(title);
 #ifdef _WIN32
-    HWND hwnd = FindWindowA(NULL, "Obstacle Runner");
+    HWND hwnd = FindWindowA(NULL, title);
     if (hwnd)
     {
         HICON hIcon = (HICON)LoadImageA(NULL, "assets/runner.ico", IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE | LR_SHARED);
