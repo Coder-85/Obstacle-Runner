@@ -595,15 +595,15 @@ void iAnimateSpriteWithOffset(Sprite *sprite)
     }
 
     if (is_idling)
-        sprite->currentFrame = (sprite->currentFrame + 1) % 10 + IDLE_FRAME_OFFSET;
+        sprite->currentFrame = (sprite->currentFrame - IDLE_FRAME_OFFSET + 1) % 10 + IDLE_FRAME_OFFSET;
     else if (game_running || currentPage == HELP)
     {
         if (is_jumping || is_super_jumping || is_spring_jumping)
-            sprite->currentFrame = (sprite->currentFrame + 1) % 10 + JUMP_FRAME_OFFSET;
+            sprite->currentFrame = (sprite->currentFrame - JUMP_FRAME_OFFSET + 1) % 10 + JUMP_FRAME_OFFSET;
         else if (is_sliding)
-            sprite->currentFrame = (sprite->currentFrame + 1) % 10 + SLIDE_FRAME_OFFSET;
+            sprite->currentFrame = (sprite->currentFrame - SLIDE_FRAME_OFFSET + 1) % 10 + SLIDE_FRAME_OFFSET;
         else if (is_dying)
-            sprite->currentFrame = (sprite->currentFrame + 1) % 10 + DEAD_FRAME_OFFSET;
+            sprite->currentFrame = (sprite->currentFrame - DEAD_FRAME_OFFSET + 1) % 10 + DEAD_FRAME_OFFSET;
         else
             sprite->currentFrame = (sprite->currentFrame + 1) % 10;
     }
@@ -870,6 +870,30 @@ void iAnimSprites()
                 {
                     initialize_object_sprites();
                 }
+            }
+        }
+
+        if (runner.currentFrame < 0 || runner.currentFrame >= runner.totalFrames)
+        {
+            if (is_idling)
+            {
+                runner.currentFrame = IDLE_FRAME_OFFSET;
+            }
+            else if (is_jumping || is_super_jumping || is_spring_jumping)
+            {
+                runner.currentFrame = JUMP_FRAME_OFFSET;
+            }
+            else if (is_sliding)
+            {
+                runner.currentFrame = SLIDE_FRAME_OFFSET;
+            }
+            else if (is_dying)
+            {
+                runner.currentFrame = DEAD_FRAME_OFFSET;
+            }
+            else
+            {
+                runner.currentFrame = 0;
             }
         }
 
